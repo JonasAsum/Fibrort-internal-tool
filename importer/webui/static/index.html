@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230071e3'/%3E%3Ctext x='16' y='22.5' font-family='-apple-system,Helvetica,Arial' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E">
+<title>Visit Importer</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="brand-mark">V</div>
+    <div>
+      <h1>Visit Importer</h1>
+      <p>Excel visit lists &rarr; Margince CRM</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button id="status-dot" class="status-dot" title="Checking connection…"></button>
+    <button id="btn-settings" class="icon-button" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1.03 1.56V21a2 2 0 11-4 0v-.09A1.7 1.7 0 008 19.4a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.56-1.03H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 8a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 008 4.6a1.7 1.7 0 001.03-1.56V3a2 2 0 014 0v.09A1.7 1.7 0 0015.4 4.6a1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 8c.25.63.82 1.03 1.56 1.03H21a2 2 0 010 4h-.09A1.7 1.7 0 0019.4 15z"/></svg>
+    </button>
+  </div>
+</header>
+
+<nav class="mode-switch" role="tablist" aria-label="Import source">
+  <button class="mode-tab active" role="tab" aria-selected="true" data-mode="visits">Visit lists (Excel)</button>
+  <button class="mode-tab" role="tab" aria-selected="false" data-mode="mail">Email archive (JSON)</button>
+  <button class="mode-tab" role="tab" aria-selected="false" data-mode="review">Reading review</button>
+</nav>
+
+<div id="view-visits">
+<nav class="stepper">
+  <div class="step active" data-step="1"><span class="step-n">1</span>Upload</div>
+  <div class="step-line"></div>
+  <div class="step" data-step="2"><span class="step-n">2</span>Review</div>
+  <div class="step-line"></div>
+  <div class="step" data-step="3"><span class="step-n">3</span>Import</div>
+</nav>
+
+<main>
+
+  <!-- STEP 1: upload -->
+  <section class="panel active" id="step-1">
+    <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Choose visit-list workbooks to upload">
+      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+      <p class="dz-title">Drop your visit-list workbook(s) here</p>
+      <p class="dz-sub">or click to browse &mdash; .xlsx, one or several at once</p>
+      <input id="file-input" type="file" accept=".xlsx" multiple hidden>
+    </div>
+    <div id="upload-error" class="inline-error hidden"></div>
+  </section>
+
+  <!-- STEP 2: review -->
+  <section class="panel" id="step-2">
+    <div class="file-chips" id="file-chips"></div>
+
+    <div class="summary" id="summary-grid"></div>
+    <div id="no-date-warning" class="warning hidden"></div>
+    <div id="separate-warning" class="warning hidden"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="companies">Companies</button>
+      <button class="tab" data-tab="contacts">Contacts</button>
+    </div>
+    <div class="tab-panel" id="panel-companies">
+      <table><thead><tr><th>Name</th><th>City</th><th>Potential</th><th>Type</th><th>Reps</th><th>Visits</th><th>Last visit</th></tr></thead><tbody id="companies-body"></tbody></table>
+    </div>
+    <div class="tab-panel hidden" id="panel-contacts">
+      <table><thead><tr><th>Full name</th><th>Company</th><th>Phone</th><th>Email</th></tr></thead><tbody id="contacts-body"></tbody></table>
+    </div>
+
+    <div id="review-error" class="inline-error hidden"></div>
+    <div class="actions">
+      <button id="btn-start-over" class="secondary">Start over</button>
+      <button id="btn-go-import" class="primary">Import to CRM &rarr;</button>
+    </div>
+  </section>
+
+  <!-- STEP 3: import progress + result -->
+  <section class="panel" id="step-3">
+    <div id="import-working">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <p id="progress-label" class="progress-label" role="status" aria-live="polite">Starting…</p>
+    </div>
+
+    <div id="import-done" class="hidden">
+      <div class="result-hero" id="result-hero">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        <div>
+          <h2>Import complete</h2>
+          <p id="result-sub"></p>
+        </div>
+      </div>
+      <div class="report-grid" id="result-report"></div>
+      <div class="actions">
+        <button id="btn-import-another" class="primary">Import another file</button>
+      </div>
+    </div>
+
+    <div id="import-error" class="hidden">
+      <div class="result-hero result-hero-error">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+        <div>
+          <h2>Import failed</h2>
+          <p id="error-text"></p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-back-to-review" class="secondary">Back to review</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<div id="view-mail" class="hidden">
+<nav class="stepper">
+  <div class="step active" data-mstep="1"><span class="step-n">1</span>Upload</div>
+  <div class="step-line"></div>
+  <div class="step" data-mstep="2"><span class="step-n">2</span>Review</div>
+  <div class="step-line"></div>
+  <div class="step" data-mstep="3"><span class="step-n">3</span>Import</div>
+</nav>
+
+<main>
+  <section class="mpanel active" id="mstep-1">
+    <div id="mdropzone" class="dropzone" role="button" tabindex="0" aria-label="Choose extracted.json to upload">
+      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+      <p class="dz-title">Drop extracted.json here</p>
+      <p class="dz-sub">or click to browse &mdash; add enrichment.json too if you have one (optional)</p>
+      <input id="mfile-input" type="file" accept=".json,application/json" multiple hidden>
+    </div>
+    <div id="mupload-error" class="inline-error hidden"></div>
+    <div class="use-current">
+      <button id="mbtn-use-current" class="primary">Use the current extraction</button>
+      <p class="hint">Takes <code>mail/staging</code> as it is, with every reading and every review decision. Nothing to upload.</p>
+    </div>
+  </section>
+
+  <section class="mpanel" id="mstep-2">
+    <div class="file-chips" id="mfile-chips"></div>
+    <div class="summary" id="msummary-grid"></div>
+    <div id="mwarnings"></div>
+
+    <div class="tabs">
+      <button class="mtab active" data-mtab="companies">Companies</button>
+      <button class="mtab" data-mtab="contacts">Contacts</button>
+    </div>
+    <div class="mtab-panel" id="mpanel-companies">
+      <table><thead><tr><th>Name</th><th>Type</th><th>Line</th><th>Domains</th><th>Mails</th><th>Name from</th></tr></thead><tbody id="mcompanies-body"></tbody></table>
+    </div>
+    <div class="mtab-panel hidden" id="mpanel-contacts">
+      <table><thead><tr><th>Name</th><th>Company</th><th>Title</th><th>Phone</th><th>Email</th><th>Mails</th></tr></thead><tbody id="mcontacts-body"></tbody></table>
+    </div>
+
+    <div class="options">
+      <label class="check"><input type="checkbox" id="m-attachments"> <span id="m-attachments-label">Upload attachment files</span></label>
+      <label class="num">Only the first <input type="number" id="m-limit" min="1" placeholder="all"> emails (trial run)</label>
+    </div>
+
+    <div id="mreview-error" class="inline-error hidden"></div>
+    <div class="actions">
+      <button id="mbtn-start-over" class="secondary">Start over</button>
+      <button class="secondary mbtn-verify">Fact check</button>
+      <button id="mbtn-go-import" class="primary">Import to CRM &rarr;</button>
+    </div>
+  </section>
+
+  <section class="mpanel" id="mstep-3">
+    <div id="mimport-working">
+      <div class="progress-bar"><div class="progress-fill" id="mprogress-fill"></div></div>
+      <p id="mprogress-label" class="progress-label" role="status" aria-live="polite">Starting…</p>
+    </div>
+    <div id="mimport-done" class="hidden">
+      <div class="result-hero" id="mresult-hero">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        <div>
+          <h2 id="mresult-title">Import complete</h2>
+          <p id="mresult-sub"></p>
+        </div>
+      </div>
+      <div class="report-grid" id="mresult-report"></div>
+      <div class="actions">
+        <button class="secondary mbtn-verify">Fact check</button>
+        <button id="mbtn-import-another" class="primary">Import another file</button>
+      </div>
+    </div>
+    <div id="mimport-error" class="hidden">
+      <div class="result-hero result-hero-error">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+        <div>
+          <h2>Import failed</h2>
+          <p id="merror-text"></p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="mbtn-back-to-review" class="secondary">Back to review</button>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<div id="view-review" class="hidden">
+<main>
+  <section class="review-head">
+    <div>
+      <h2>Reading review</h2>
+      <p class="hint">What two independent readings found in the mails. Every quote below was found word for word in its
+        mail by code. You decide money, scan numbers and every disagreement; nothing waiting here goes into the CRM.
+        Won/lost closes are confirmed later in the CRM's own approval inbox.</p>
+    </div>
+    <label class="reviewer">Your name <input id="review-by" type="text" placeholder="e.g. Jonas"></label>
+  </section>
+  <div id="review-error" class="inline-error hidden"></div>
+  <div id="review-cases"></div>
+  <div id="review-case" class="hidden">
+    <div class="actions review-nav">
+      <button id="review-back" class="secondary">&larr; All companies</button>
+      <label class="check"><input type="checkbox" id="review-show-all"> Show agreed and rejected items too</label>
+    </div>
+    <h3 id="review-title"></h3>
+    <p id="review-summary" class="hint"></p>
+    <div id="review-items"></div>
+  </div>
+</main>
+</div>
+
+<!-- confirm-import modal (shows the preview before writing) -->
+<div id="confirm-modal" class="modal hidden">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h3 id="confirm-title">Ready to import</h3>
+    <p class="hint">Here's what will land in the CRM. This step writes data.</p>
+    <div id="confirm-report" class="report-grid"></div>
+    <div class="modal-actions">
+      <button id="confirm-cancel" class="secondary">Cancel</button>
+      <button id="confirm-ok" class="primary">Confirm &amp; import</button>
+    </div>
+  </div>
+</div>
+
+<!-- fact check of the email import (mail/verify.py) -->
+<div id="mverify-modal" class="modal hidden">
+  <div class="modal-box modal-wide" role="dialog" aria-modal="true" aria-labelledby="mverify-title">
+    <h3 id="mverify-title">Fact check</h3>
+    <p class="hint">Every value is looked up again in the original mails and PDFs, then compared with what the CRM
+      holds. Nothing is written.</p>
+    <p id="mverify-status" class="progress-label" role="status" aria-live="polite"></p>
+    <div id="mverify-report" class="report-grid"></div>
+    <div id="mverify-problems"></div>
+    <div class="modal-actions">
+      <button id="mverify-close" class="secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- confirm modal for the email archive -->
+<div id="mconfirm-modal" class="modal hidden">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="mconfirm-title">
+    <h3 id="mconfirm-title">Ready to import</h3>
+    <p class="hint">Here's what will land in the CRM. This step writes data. Running it again never duplicates.</p>
+    <div id="mconfirm-report" class="report-grid"></div>
+    <div class="modal-actions">
+      <button id="mconfirm-cancel" class="secondary">Cancel</button>
+      <button id="mconfirm-ok" class="primary">Confirm &amp; import</button>
+    </div>
+  </div>
+</div>
+
+<!-- settings modal -->
+<div id="settings-modal" class="modal hidden">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <h3 id="settings-title">Connection settings</h3>
+    <div class="form-grid">
+      <label>Server URL <input id="s-base_url" type="text" placeholder="http://localhost:8080"></label>
+      <label>Email <input id="s-email" type="text" placeholder="admin@demo.test"></label>
+      <label>Password <input id="s-password" type="password" placeholder="••••••••"></label>
+    </div>
+    <p id="settings-status" class="hint"></p>
+
+    <div class="danger-zone">
+      <h4>Danger zone</h4>
+      <p class="hint">Stops the margince dev stack, rebuilds the <code>margince</code> database (<code>make dev-fresh</code>), restarts it,
+        and reseeds the baseline demo data. Everything currently in the CRM is gone — including anything
+        imported from here. Takes a few minutes (the backend is rebuilt).</p>
+      <button id="btn-reset-db" class="danger">Clear database</button>
+      <p id="reset-db-status" class="hint"></p>
+    </div>
+
+    <div class="modal-actions">
+      <button id="settings-cancel" class="secondary">Close</button>
+      <button id="settings-save" class="primary">Save &amp; test</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+<script src="/static/mail.js"></script>
+<script src="/static/review.js"></script>
+</body>
+</html>

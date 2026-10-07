@@ -1,0 +1,764 @@
+note_id,visit_id,line_no,text,highlight,deadline_followup,excel_row
+LY-2025CW14-01-N1,LY-2025CW14-01,1,Send comparison with Genlong to Mr.Yang.,,,10
+LY-2025CW14-01-N2,LY-2025CW14-01,2,They will inquire us if they have new project.,,,11
+LY-2025CW14-01-N3,LY-2025CW14-01,3,"The price of Genlong product is almost 20% cheaper than our table, it is look like difficult to change.",,,12
+LY-2025CW14-02-N1,LY-2025CW14-02,1,"Select 8 pcs ER.13 for the new project, will get order in November.",,,14
+LY-2025CW14-02-N2,LY-2025CW14-02,2,Will go to the enduser site together with distributor in CW 16.,,,15
+LY-2025CW14-03-N1,LY-2025CW14-03,1,They used Sandex table for assembly line. Mostly size is about 200-300mm.,,,17
+LY-2025CW14-03-N2,LY-2025CW14-03,2,Send comparison with Sandex to Ms.Chen.,green,,18
+LY-2025CW15-05-N1,LY-2025CW15-05,1,"No buesiness in 3C area, mostly in 3C.",,,10
+LY-2025CW15-05-N2,LY-2025CW15-05,2,"The price of Genlong product is almost 50% cheaper than our table, it is look like difficult to change.",,,11
+LY-2025CW15-05-N3,LY-2025CW15-05,3,Arrange visit in CW 19.,green,,12
+LY-2025CW15-06-N1,LY-2025CW15-06,1,"Chuangyi is supplier in semiconductor area, mostly pick and place.",,,14
+LY-2025CW15-06-N2,LY-2025CW15-06,2,Will send quotation for 19 pc VR.NC 18 this week.,green,Reply to customer in 3 days.,15
+LY-2025CW15-07-N1,LY-2025CW15-07,1,The replacement motor has not arrived yet.,,,18
+LY-2025CW15-08-N1,LY-2025CW15-08,1,"Their business is decreased than last year, many update requirement project this year.",,,21
+LY-2025CW15-08-N2,LY-2025CW15-08,2,"They also have a service department, but the leader is busy.",,,22
+LY-2025CW15-08-N3,LY-2025CW15-08,3,"No business in 3C area, mostly in battery.",,,23
+LY-2025CW15-08-N4,LY-2025CW15-08,4,Arrange appointment with Mr.Becker in October.,green,Reply to customer in 3 days.,24
+LY-2025CW15-09-N1,LY-2025CW15-09,1,We had cooperation with another department of the group before.,,,25
+LY-2025CW15-09-N2,LY-2025CW15-09,2,They will inquire us if they have new project.,,,26
+LY-2025CW15-09-N3,LY-2025CW15-09,3,Arrange visit in CW 18.,green,,27
+LY-2025CW15-10-N1,LY-2025CW15-10,1,Cancelled by customer.,green,,28
+LY-2025CW15-10-N2,LY-2025CW15-10,2,Arrange visit in CW 18,green,,29
+LY-2025CW15-11-N1,LY-2025CW15-11,1,We had cooperation with another department of the group before.,,,31
+LY-2025CW15-11-N2,LY-2025CW15-11,2,Mr.Wang is sales manager. He was introduced us to the service team.,,,32
+LY-2025CW15-11-N3,LY-2025CW15-11,3,They will inquire us if they have new project.,,,33
+LY-2025CW15-12-N1,LY-2025CW15-12,1,There are approximately dozens of equipment manufacturers doing the assembly machine. Most of them used Gamma table.,,,34
+LY-2025CW15-12-N2,LY-2025CW15-12,2,Promote Fibro AT1600 table and start contact with the customers. Will arrange visit in CW 17 and CW 18.,green,,35
+LY-2025CW16-13-N1,LY-2025CW16-13,1,"The price of local brand product is almost 20% cheaper than our table, it is look like difficult to change.",,,10
+LY-2025CW16-13-N2,LY-2025CW16-13,2,Arrange appointment with Mr.Hartmann in April.,green,Contact with Dongfang.,11
+LY-2025CW16-13-N3,LY-2025CW16-13,3,"Their business is decreased than last year, many update requirement project this year.",,,12
+LY-2025CW16-14-N1,LY-2025CW16-14,1,Will send quotation for 15 pc AT1600 this week.,green,,15
+LY-2025CW16-14-N2,LY-2025CW16-14,2,"They also have a BIW business department, but the leader is busy.",,,16
+LY-2025CW16-14-N3,LY-2025CW16-14,3,"Hongda is supplier in packaging and printing area, mostly fixture turning system.",,,17
+LY-2025CW16-15-N1,LY-2025CW16-15,1,We had cooperation with another department of the group before.,,,18
+LY-2025CW16-15-N2,LY-2025CW16-15,2,"Their business is decreased than last year, many update requirement project this year.",,,19
+LY-2025CW16-15-N3,LY-2025CW16-15,3,Will send quatation for 1 pc ER.11 this week.,green,LiuYang will follow up this customer.,20
+LY-2025CW16-15-N4,LY-2025CW16-15,4,Their customer is tier 1 and have good business in oversea.,,,21
+LY-2025CW16-16-N1,LY-2025CW16-16,1,"Their business is better than last year, many update requirement project this year.",,,23
+LY-2025CW16-16-N2,LY-2025CW16-16,2,"Select 12 pcs ER.10 for the new project, will get order in August.",,,24
+LY-2025CW16-17-N1,LY-2025CW16-17,1,local brand offered 30% lower price. Customer ask for discount.,,,26
+LY-2025CW16-17-N2,LY-2025CW16-17,2,"Select 10 pcs ER.13 for the new project, will get order in June.",,,27
+LY-2025CW16-17-N3,LY-2025CW16-17,3,Technical problem with ER.13: noise at high speed. Need support from HQ.,,,28
+LY-2025CW16-18-N1,LY-2025CW16-18,1,"The price of Sandex product is almost 40% cheaper than our table, it is look like difficult to change.",,,30
+LY-2025CW16-19-N1,LY-2025CW16-19,1,There are approximately dozens of equipment manufacturers doing the packaging machine. Most of them used Huilin table.,,,33
+LY-2025CW16-19-N2,LY-2025CW16-19,2,Promote Fibro ER15 D4 table and start contact with the customers. Will arrange visit in CW 18 and CW 19.,green,,34
+LY-2025CW17-21-N1,LY-2025CW17-21,1,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,10
+LY-2025CW17-21-N2,LY-2025CW17-21,2,"No business in medical area, mostly in battery.",,,11
+LY-2025CW17-21-N3,LY-2025CW17-21,3,"The price of Genlong product is almost 20% cheaper than our table, it is look like difficult to change.",,,12
+LY-2025CW17-22-N1,LY-2025CW17-22,1,"They also have a R&D department, but the leader is busy.",,,15
+LY-2025CW17-22-N2,LY-2025CW17-22,2,"Waiting for PO, customer say budget approval in March.",yellow,Appointment should be arrange in this month.,16
+LY-2025CW17-22-N3,LY-2025CW17-22,3,They will inquire us if they have new project.,,,17
+LY-2025CW17-23-N1,LY-2025CW17-23,1,Arrange appointment with Mr.Becker in June.,,,18
+LY-2025CW17-23-N2,LY-2025CW17-23,2,"No business in automobile area, mostly in 3C.",,,19
+LY-2025CW17-23-N3,LY-2025CW17-23,3,Their customer is tier 1 and have good business in oversea.,,,20
+LY-2025CW17-24-N1,LY-2025CW17-24,1,"They also have a overseas business department, but the leader is busy.",,,21
+LY-2025CW17-24-N2,LY-2025CW17-24,2,The replacement encoder cable has not arrived yet.,,,22
+LY-2025CW17-24-N3,LY-2025CW17-24,3,Will send quotation for 14 pc AT1600 this week.,green,,23
+LY-2025CW17-24-N4,LY-2025CW17-24,4,"Their buesiness is better than last year, many update requirement project this year.",,,24
+LY-2025CW17-24-N5,LY-2025CW17-24,5,"Customer asked for quotation of 14 pc AT1600, delivery time is important.",,,25
+LY-2025CW18-25-N1,LY-2025CW18-25,1,The replacement brake has not arrived yet.,,,10
+LY-2025CW18-26-N1,LY-2025CW18-26,1,They used Gamma table for assembly line. Mostly size is about 200-300mm.,,,13
+LY-2025CW18-26-N2,LY-2025CW18-26,2,Mr.Zhang is project manager. He was introduced us to the BIW buesiness team.,,,14
+LY-2025CW18-26-N3,LY-2025CW18-26,3,"The price of Gamma prodcut is almost 20% cheaper than our table, it is look like difficult to change.",,,15
+LY-2025CW18-26-N4,LY-2025CW18-26,4,"Their business is better than last year, many update requirement project this year.",,,16
+LY-2025CW18-26-N5,LY-2025CW18-26,5,Send comparison with Gamma to Mr.Zhang.,,,17
+LY-2025CW19-27-N1,LY-2025CW19-27,1,"Haoran is supplier in automotive BIW area, mostly pick and place.",,,10
+LY-2025CW19-27-N2,LY-2025CW19-27,2,Arrange visit in CW 20.,green,LiuYang will follow up this customer.,11
+LY-2025CW19-27-N3,LY-2025CW19-27,3,"Their business is better than last year, many update requirement project this year.",,,12
+LY-2025CW19-27-N4,LY-2025CW19-27,4,"The price of Weiss product is almost 50% cheaper than our table, it is look like difficult to change.",,,13
+LY-2025CW19-28-N1,LY-2025CW19-28,1,Mr.Zhang is sales manager. He was introduced us to the overseas business team.,,,14
+LY-2025CW19-28-N2,LY-2025CW19-28,2,"The price of Genlong product is almost 50% cheaper than our table, it is look like difficult to change.",,,15
+LY-2025CW19-28-N3,LY-2025CW19-28,3,We had cooperation with another department of the group before.,,,16
+LY-2025CW19-28-N4,LY-2025CW19-28,4,They used Genlong table for coil winding line. Mostly size is about 200-300mm.,,,17
+LY-2025CW19-29-N1,LY-2025CW19-29,1,Will send quotation for 5 pc ER.13 this week.,green,,18
+LY-2025CW19-29-N2,LY-2025CW19-29,2,Ms.Chen is overseas business development manager. She was introduced us to the BIW business team.,,,19
+LY-2025CW19-30-N1,LY-2025CW19-30,1,There are approximately dozens of equipment manufacturers doing the printing machine. Most of them used Weiss table.,,,21
+LY-2025CW19-30-N2,LY-2025CW19-30,2,Promote Fibro ER.11 table and start contact with the customers. Will arrange visit in CW 21 and CW 22.,green,,22
+LY-2025CW20-31-N1,LY-2025CW20-31,1,"No business in automobile area, mostly in battery.",,,10
+LY-2025CW20-31-N2,LY-2025CW20-31,2,Arrange visit in CW 23.,green,,11
+LY-2025CW20-31-N3,LY-2025CW20-31,3,"The price of local brand prodcut is almost 40% cheaper than our table, it is look like difficult to change.",,,12
+LY-2025CW20-31-N4,LY-2025CW20-31,4,We had cooperation with another department of the group before.,,,13
+LY-2025CW20-31-N5,LY-2025CW20-31,5,"They also have a overseas business department, but the leader is busy.",,,14
+LY-2025CW20-32-N1,LY-2025CW20-32,1,Project for welding cell is waiting for approval. Need 13 pc ER.10.,,,16
+LY-2025CW20-32-N2,LY-2025CW20-32,2,Will send quotation for 13 pc ER.10 this week.,green,,17
+LY-2025CW20-32-N3,LY-2025CW20-32,3,"The price of Genlong product is almost 20% cheaper than our table, it is look like difficult to change.",,,18
+LY-2025CW20-33-N1,LY-2025CW20-33,1,"The price of Gamma product is almost 15% cheaper than our table, it is look like difficult to change.",,,21
+LY-2025CW20-33-N2,LY-2025CW20-33,2,"Their business is decreased than last year, many update requirement project this year.",,,22
+LY-2025CW20-33-N3,LY-2025CW20-33,3,"Select 1 pcs VR.NC 18 for the new project, will get order in September.",,,23
+LY-2025CW20-33-N4,LY-2025CW20-33,4,Project for laser cutting is still in design stage. Need 1 pc VR.NC 18.,,,24
+LY-2025CW20-33-N5,LY-2025CW20-33,5,Promote Fibro VR.NC 18 table and start contact with the customers.,green,,25
+LY-2025CW20-34-N1,LY-2025CW20-34,1,"Their business is decreased than last year, many update requirement project this year.",,,28
+LY-2025CW20-34-N2,LY-2025CW20-34,2,Mr.Hu is technical director. He was introduced us to the service team.,,,29
+LY-2025CW20-34-N3,LY-2025CW20-34,3,Send comparison with Weiss to Mr.Hu.,green,,30
+LY-2025CW21-36-N1,LY-2025CW21-36,1,There are approximately dozens of equipment manufacturers doing the printing machine. Most of them used Gamma table.,,,10
+LY-2025CW21-36-N2,LY-2025CW21-36,2,Promote Fibro orange table table and start contact with the customers. Will arrange visit in CW 23 and CW 24.,green,,11
+LY-2025CW21-37-N1,LY-2025CW21-37,1,"Customer asked for quotation of 19 pc ER15 D4, delivery time is important.",,,13
+LY-2025CW21-38-N1,LY-2025CW21-38,1,"They also have a service department, but the leader is busy.",,,16
+LY-2025CW21-38-N2,LY-2025CW21-38,2,The replacement encoder cable has not arrived yet.,,,17
+LY-2025CW21-38-N3,LY-2025CW21-38,3,Send comparison with Sandex to Ms.Li.,,LiuYang will follow up this customer.,18
+LY-2025CW21-38-N4,LY-2025CW21-38,4,"The price of Sandex product is almost 20% cheaper than our table, it is look like difficult to change.",,,19
+LY-2025CW21-39-N1,LY-2025CW21-39,1,"The price of Genlong product is almost 30% cheaper than our table, it is look like difficult to change.",,,22
+LY-2025CW21-39-N2,LY-2025CW21-39,2,Project for inspection station is running well. Need 7 pc orange table.,,,23
+LY-2025CW21-39-N3,LY-2025CW21-39,3,"Customer asked for quotation of 7 pc orange table, delivery time is important.",,,24
+LY-2025CW21-39-N4,LY-2025CW21-39,4,"Their business is better than last year, many update requirement project this year.",,,25
+LY-2025CW21-39-N5,LY-2025CW21-39,5,They plan to buy 7 pcs orange table per year.,,,26
+LY-2025CW21-40-N1,LY-2025CW21-40,1,"Hanyu is supplier in machine tool area, mostly packaging machine.",,,29
+LY-2025CW21-40-N2,LY-2025CW21-40,2,Ms.Chen is overseas business development manager. She was introduced us to the overseas business team.,,,30
+LY-2025CW21-40-N3,LY-2025CW21-40,3,They used Gamma table for coil winding line. Mostly size is about 200-500mm.,,,31
+LY-2025CW21-40-N4,LY-2025CW21-40,4,Their customer is tier 1 and have good business in oversea.,,,32
+LY-2025CW21-41-N1,LY-2025CW21-41,1,Will send quatation for 19 pc orange table this week.,green,,35
+LY-2025CW21-41-N2,LY-2025CW21-41,2,"The price of Gamma prodcut is almost 50% cheaper than our table, it is look like difficult to change.",,,36
+LY-2025CW21-41-N3,LY-2025CW21-41,3,We had cooperation with another department of the group before.,,,37
+LY-2025CW21-42-N1,LY-2025CW21-42,1,Will send quotation for 20 pc ER.13 this week.,green,,38
+LY-2025CW21-42-N2,LY-2025CW21-42,2,"They also have a BIW business department, but the leader is busy.",,,39
+LY-2025CW22-43-N1,LY-2025CW22-43,1,"The price of Huilin product is almost 20% cheaper than our table, it is look like difficult to change.",,,10
+LY-2025CW22-44-N1,LY-2025CW22-44,1,"Customer asked for quotation of 7 pc ER15 D4, delivery time is important.",,,13
+LY-2025CW22-44-N2,LY-2025CW22-44,2,The replacement gearbox has not arrived yet.,,,14
+LY-2025CW22-45-N1,LY-2025CW22-45,1,Technical problem with ER11 D2: encoder error. Need support from HQ.,,,16
+LY-2025CW22-45-N2,LY-2025CW22-45,2,"Their business is decreased than last year, many update requirement project this year.",,,17
+LY-2025CW22-45-N3,LY-2025CW22-45,3,Used 15 - 20 pcs Genlong table per year.,,,18
+LY-2025CW22-45-N4,LY-2025CW22-45,4,They plan to buy 15 pcs ER11 D2 per year.,,,19
+LY-2025CW22-45-N5,LY-2025CW22-45,5,The replacement motor has not arrived yet.,,,20
+LY-2025CW22-46-N1,LY-2025CW22-46,1,They plan to buy 6 pcs VR.NC 18 per year.,,,21
+LY-2025CW22-46-N2,LY-2025CW22-46,2,"Select 6 pcs VR.NC 18 for the new project, will get order in April.",,,22
+LY-2025CW22-46-N3,LY-2025CW22-46,3,"Customer asked for quatation of 6 pc VR.NC 18, delivery time is important.",,,23
+LY-2025CW22-47-N1,LY-2025CW22-47,1,Used 19 - 24 pcs Gamma table per year.,,,26
+LY-2025CW22-47-N2,LY-2025CW22-47,2,Arrange visit in CW 26.,green,,27
+LY-2025CW22-47-N3,LY-2025CW22-47,3,Gamma offered 50% lower price. Customer ask for discount.,,,28
+LY-2025CW22-48-N1,LY-2025CW22-48,1,"The price of Sandex prodcut is almost 15% cheaper than our table, it is look like difficult to change.",,,30
+LY-2025CW22-48-N2,LY-2025CW22-48,2,"Customer provide the parameter, wait for solution and quotation from HQ.",,Appointment should be arrange in this month.,31
+LY-2025CW22-48-N3,LY-2025CW22-48,3,Ms.Gao is project manager. She was introduced us to the overseas business team.,,,32
+LY-2025CW22-48-N4,LY-2025CW22-48,4,"They also have a service department, but the leader is busy.",,,33
+LY-2025CW23-50-N1,LY-2025CW23-50,1,There are approximately dozens of equipment manufacturers doing the printing machine. Most of them used Gamma table.,,,10
+LY-2025CW23-50-N2,LY-2025CW23-50,2,Promote Fibro AT1600 table and start contact with the customers. Will arrange visit in CW 25 and CW 26.,green,,11
+LY-2025CW23-51-N1,LY-2025CW23-51,1,"The price of Taiwan DEX product is almost 30% cheaper than our table, it is look like difficult to change.",,,13
+LY-2025CW23-51-N2,LY-2025CW23-51,2,"Select 14 pcs orange table for the new project, will get order in March.",,,14
+LY-2025CW23-52-N1,LY-2025CW23-52,1,"Select 2 pcs ER.11 for the new project, will get order in April.",,,16
+LY-2025CW23-52-N2,LY-2025CW23-52,2,Send comparison with Genlong to Mr.Zhou.,green,,17
+LY-2025CW23-52-N3,LY-2025CW23-52,3,Genlong offered 50% lower price. Customer ask for discount.,,,18
+LY-2025CW23-53-N1,LY-2025CW23-53,1,"The price of Genlong product is almost 40% cheaper than our table, it is look like difficult to change.",,,19
+LY-2025CW23-53-N2,LY-2025CW23-53,2,"Waiting for PO, custmer say budget approval in February.",,Follow up in CW 26.,20
+LY-2025CW23-53-N3,LY-2025CW23-53,3,"Yuanchuang is supplier in medical device area, mostly welding cell.",,,21
+LY-2025CW23-53-N4,LY-2025CW23-53,4,We had cooperation with another department of the group before.,,,22
+LY-2025CW23-53-N5,LY-2025CW23-53,5,"Their business is decreased than last year, many update requirement project this year.",,,23
+LY-2025CW24-54-N1,LY-2025CW24-54,1,Mr.Li is purchasing manager. He was introduced us to the BIW business team.,,,10
+LY-2025CW24-54-N2,LY-2025CW24-54,2,We had cooperation with another department of the group before.,,,11
+LY-2025CW24-54-N3,LY-2025CW24-54,3,"The price of Huilin product is almost 30% cheaper than our table, it is look like difficult to change.",,,12
+LY-2025CW24-54-N4,LY-2025CW24-54,4,"No buesiness in automobile area, mostly in battery.",,,13
+LY-2025CW24-55-N1,LY-2025CW24-55,1,"The price of Gamma product is almost 40% cheaper than our table, it is look like difficult to change.",,,14
+LY-2025CW24-55-N2,LY-2025CW24-55,2,"They also have a BIW business department, but the leader is busy.",,,15
+LY-2025CW24-55-N3,LY-2025CW24-55,3,Mr.He is general manager. He was introduced us to the BIW business team.,,,16
+LY-2025CW24-56-N1,LY-2025CW24-56,1,"No business in 3C area, mostly in battery.",,,19
+LY-2025CW24-56-N2,LY-2025CW24-56,2,They used Taiwan DEX table for assembly line. Mostly size is about 200-300mm.,,,20
+LY-2025CW24-56-N3,LY-2025CW24-56,3,Arrange visit in CW 25.,green,,21
+LY-2025CW24-56-N4,LY-2025CW24-56,4,Mr.Hu is technical director. He was introduced us to the overseas business team.,,,22
+LY-2025CW24-57-N1,LY-2025CW24-57,1,The replacement gearbox has not arrived yet.,,,24
+LY-2025CW24-57-N2,LY-2025CW24-57,2,"Select 15 pcs ER11 D2 for the new project, will get order in December.",,,25
+LY-2025CW24-57-N3,LY-2025CW24-57,3,They plan to buy 15 pcs ER11 D2 per year.,,,26
+LY-2025CW25-58-N1,LY-2025CW25-58,1,Mr.Hu is technical director. He was introduced us to the R&D team.,,,10
+LY-2025CW25-59-N1,LY-2025CW25-59,1,"The price of Gamma product is almost 20% cheaper than our table, it is look like difficult to change.",,,13
+LY-2025CW25-59-N2,LY-2025CW25-59,2,Will send quotation for 8 pc ER.10 this week.,green,Appointment should be arrange in this month.,14
+LY-2025CW25-59-N3,LY-2025CW25-59,3,The replacement motor has not arrived yet.,,,15
+LY-2025CW25-59-N4,LY-2025CW25-59,4,"Customer asked for quotation of 8 pc ER.10, delivery time is important.",,,16
+LY-2025CW25-59-N5,LY-2025CW25-59,5,They plan to buy 8 pcs ER.10 per year.,,,17
+LY-2025CW25-60-N1,LY-2025CW25-60,1,Arrange visit in CW 29.,,Follow up in CW 29.,20
+LY-2025CW25-60-N2,LY-2025CW25-60,2,"Yuanchuang is supplier in medical device area, mostly testing equipment.",,,21
+LY-2025CW25-60-N3,LY-2025CW25-60,3,Their customer is tier 1 and have good business in oversea.,,,22
+LY-2025CW25-61-N1,LY-2025CW25-61,1,They will inquire us if they have new project.,,,23
+LY-2025CW25-61-N2,LY-2025CW25-61,2,Ms.Chen is overseas business development manager. She was introduced us to the service team.,,,24
+LY-2025CW25-61-N3,LY-2025CW25-61,3,Their customer is tier 1 and have good business in oversea.,,,25
+LY-2025CW25-61-N4,LY-2025CW25-61,4,They used Sandex table for inspection station. Mostly size is about 200-300mm.,,,26
+LY-2025CW25-62-N1,LY-2025CW25-62,1,The replacement encoder cable has not arrived yet.,,,28
+LY-2025CW25-62-N2,LY-2025CW25-62,2,"Their business is decreased than last year, many update requirement project this year.",,,29
+LY-2025CW25-62-N3,LY-2025CW25-62,3,They plan to buy 15 pcs ER.13 per year.,,,30
+LY-2025CW25-62-N4,LY-2025CW25-62,4,Promote Fibro ER.13 table and start contact with the customers.,,,31
+LY-2025CW25-63-N1,LY-2025CW25-63,1,"Their business is better than last year, many update requirement project this year.",,,33
+LY-2025CW25-63-N2,LY-2025CW25-63,2,"No business in automobile area, mostly in battery.",,,34
+LY-2025CW26-64-N1,LY-2025CW26-64,1,There are approximately dozens of equipment manufacturers doing the packaging machine. Most of them used Weiss table.,,,10
+LY-2025CW26-64-N2,LY-2025CW26-64,2,Promote Fibro ER.10 table and start contact with the customers. Will arrange visit in CW 28 and CW 29.,green,,11
+LY-2025CW26-65-N1,LY-2025CW26-65,1,"Select 16 pcs ER15 D4 for the new project, will get order in March.",,,13
+LY-2025CW26-65-N2,LY-2025CW26-65,2,"Waiting for PO, customer say budget approval in March.",yellow,Follow up in CW 28.,14
+LY-2025CW26-65-N3,LY-2025CW26-65,3,They plan to buy 16 pcs ER15 D4 per year.,,,15
+LY-2025CW26-66-N1,LY-2025CW26-66,1,"Select 7 pcs AT1600 for the new project, will get order in November.",,,18
+LY-2025CW26-66-N2,LY-2025CW26-66,2,"Customer asked for quotation of 7 pc AT1600, delivery time is important.",,,19
+LY-2025CW26-67-N1,LY-2025CW26-67,1,Will go to the enduser site together with distributor in CW 27.,green,,21
+LY-2025CW26-67-N2,LY-2025CW26-67,2,They used Weiss table for coil winding line. Mostly size is about 200-300mm.,,,22
+LY-2025CW27-68-N1,LY-2025CW27-68,1,Their customer is tier 1 and have good buesiness in oversea.,,,10
+LY-2025CW27-68-N2,LY-2025CW27-68,2,We had cooperation with another department of the group before.,,,11
+LY-2025CW27-68-N3,LY-2025CW27-68,3,Will go to the enduser site together with distributor in CW 28.,,LiuYang will follow up this customer.,12
+LY-2025CW27-69-N1,LY-2025CW27-69,1,We had cooperation with another department of the group before.,,,13
+LY-2025CW27-69-N2,LY-2025CW27-69,2,Send comparison with Gamma to Mr.Yang.,green,Contact with Tianyu.,14
+LY-2025CW27-69-N3,LY-2025CW27-69,3,"Their business is better than last year, many update requirement project this year.",,,15
+LY-2025CW27-69-N4,LY-2025CW27-69,4,Mr.Yang is general manager. He was introduced us to the R&D team.,,,16
+LY-2025CW27-70-N1,LY-2025CW27-70,1,Cancelled by customer.,green,,19
+LY-2025CW27-70-N2,LY-2025CW27-70,2,Arrange visit in CW 28,green,,20
+LY-2025CW27-71-N1,LY-2025CW27-71,1,Cancelled by customer.,green,,22
+LY-2025CW27-71-N2,LY-2025CW27-71,2,Arrange visit in CW 28,green,,23
+LY-2025CW27-72-N1,LY-2025CW27-72,1,They will inquire us if they have new project.,,,25
+LY-2025CW27-72-N2,LY-2025CW27-72,2,"The price of Sandex prodcut is almost 50% cheaper than our table, it is look like difficult to change.",,,26
+SM-2025CW18-01-N1,SM-2025CW18-01,1,We had cooperation with another department of the group before.,,,10
+SM-2025CW18-02-N1,SM-2025CW18-02,1,Project for testing equipment is waiting for approval. Need 20 pc AT1600.,,,13
+SM-2025CW18-03-N1,SM-2025CW18-03,1,Used 11 - 16 pcs Huilin table per year.,,,16
+SM-2025CW19-05-N1,SM-2025CW19-05,1,Cancelled by customer.,green,,10
+SM-2025CW19-05-N2,SM-2025CW19-05,2,Arrange visit in CW 20,green,,11
+SM-2025CW19-06-N1,SM-2025CW19-06,1,Genlong offered 20% lower price. Customer ask for discount.,,,13
+SM-2025CW19-07-N1,SM-2025CW19-07,1,"The price of Huilin product is almost 50% cheaper than our table, it is look like difficult to change.",,,16
+SM-2025CW19-07-N2,SM-2025CW19-07,2,Promote Fibro VR.NC 18 table and start contact with the customers.,green,Reply to customer in 3 days.,17
+SM-2025CW19-07-N3,SM-2025CW19-07,3,"Mingda is supplier in automotive BIW area, mostly fixture turning system.",,,18
+SM-2025CW19-07-N4,SM-2025CW19-07,4,"No business in medical area, mostly in battery.",,,19
+SM-2025CW19-08-N1,SM-2025CW19-08,1,They plan to buy 20 pcs ER.13 per year.,,,20
+SM-2025CW19-08-N2,SM-2025CW19-08,2,Used 20 - 25 pcs Huilin table per year.,,,21
+SM-2025CW20-10-N1,SM-2025CW20-10,1,Technical problem with ER.10: position drift after 3 months. Need support from HQ.,,,10
+SM-2025CW20-11-N1,SM-2025CW20-11,1,"Customer asked for quotation of 12 pc ER.13, delivery time is important.",,,13
+SM-2025CW20-11-N2,SM-2025CW20-11,2,They plan to buy 12 pcs ER.13 per year.,,,14
+SM-2025CW20-11-N3,SM-2025CW20-11,3,Used 12 - 17 pcs Sandex table per year.,,,15
+SM-2025CW20-11-N4,SM-2025CW20-11,4,Will go to the enduser site together with distributor in CW 24.,green,,16
+SM-2025CW20-12-N1,SM-2025CW20-12,1,"Waiting for PO, customer say budget approval in September.",yellow,,19
+SM-2025CW20-12-N2,SM-2025CW20-12,2,"The price of local brand prodcut is almost 40% cheaper than our table, it is look like difficult to change.",,,20
+SM-2025CW20-12-N3,SM-2025CW20-12,3,Their customer is tier 1 and have good business in oversea.,,,21
+SM-2025CW20-13-N1,SM-2025CW20-13,1,The replacement motor has not arrived yet.,,,24
+SM-2025CW20-13-N2,SM-2025CW20-13,2,"Select 2 pcs ER.11 for the new project, will get order in April.",,,25
+SM-2025CW20-13-N3,SM-2025CW20-13,3,They plan to buy 2 pcs ER.11 per year.,,,26
+SM-2025CW20-14-N1,SM-2025CW20-14,1,There are approximately dozens of equipment manufacturers doing the packaging machine. Most of them used Huilin table.,,,28
+SM-2025CW20-14-N2,SM-2025CW20-14,2,Promote Fibro AT1600 table and start contact with the customers. Will arrange visit in CW 22 and CW 23.,green,,29
+SM-2025CW20-15-N1,SM-2025CW20-15,1,"Select 18 pcs ER.10 for the new project, will get order in October.",,,31
+SM-2025CW20-15-N2,SM-2025CW20-15,2,The replacement gearbox has not arrived yet.,,,32
+SM-2025CW20-15-N3,SM-2025CW20-15,3,Promote Fibro ER.10 table and start contact with the customers.,green,,33
+SM-2025CW20-16-N1,SM-2025CW20-16,1,"Select 17 pcs AT1600 for the new project, will get order in February.",,,35
+SM-2025CW20-16-N2,SM-2025CW20-16,2,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,36
+SM-2025CW21-18-N1,SM-2025CW21-18,1,Project for inspection station is running well. Need 11 pc ER15 D4.,,,10
+SM-2025CW21-18-N2,SM-2025CW21-18,2,"Select 11 pcs ER15 D4 for the new project, will get order in September.",,,11
+SM-2025CW21-18-N3,SM-2025CW21-18,3,Used 11 - 16 pcs Huilin table per year.,,,12
+SM-2025CW21-18-N4,SM-2025CW21-18,4,Arrange appointment with Mr.Becker in September.,green,Contact with Kangtai.,13
+SM-2025CW21-18-N5,SM-2025CW21-18,5,Technical problem with ER15 D4: oil leakage at housing. Need support from HQ.,,,14
+SM-2025CW21-19-N1,SM-2025CW21-19,1,There are approximately dozens of equipment manufacturers doing the printing machine. Most of them used Huilin table.,,,17
+SM-2025CW21-19-N2,SM-2025CW21-19,2,Promote Fibro ER15 D4 table and start contact with the customers. Will arrange visit in CW 23 and CW 24.,green,,18
+SM-2025CW21-20-N1,SM-2025CW21-20,1,"Customer provide the parameter, wait for solution and quotation from HQ.",,,20
+SM-2025CW21-20-N2,SM-2025CW21-20,2,"The price of Huilin product is almost 40% cheaper than our table, it is look like difficult to change.",,,21
+SM-2025CW21-21-N1,SM-2025CW21-21,1,"Select 5 pcs ER.11 for the new project, will get order in August.",,,23
+SM-2025CW21-21-N2,SM-2025CW21-21,2,The replacement encoder cable has not arrived yet.,,,24
+SM-2025CW21-22-N1,SM-2025CW21-22,1,The replacement sensor has not arrived yet.,,,26
+SM-2025CW22-24-N1,SM-2025CW22-24,1,"The price of Gamma prodcut is almost 40% cheaper than our table, it is look like difficult to change.",,,10
+SM-2025CW22-24-N2,SM-2025CW22-24,2,Will send quotation for 1 pc ER.10 this week.,,,11
+SM-2025CW22-25-N1,SM-2025CW22-25,1,"Their buesiness is better than last year, many update requirement project this year.",,,13
+SM-2025CW22-25-N2,SM-2025CW22-25,2,Wait for drawing confirmation from custmer.,yellow,,14
+SM-2025CW22-26-N1,SM-2025CW22-26,1,They plan to buy 2 pcs VR.NC 18 per year.,,,16
+SM-2025CW22-27-N1,SM-2025CW22-27,1,"Customer asked for quotation of 3 pc VR.NC 18, delivery time is important.",,,19
+SM-2025CW22-27-N2,SM-2025CW22-27,2,Promote Fibro VR.NC 18 table and start contact with the customers.,,,20
+SM-2025CW23-28-N1,SM-2025CW23-28,1,They plan to buy 11 pcs AT1600 per year.,,,10
+SM-2025CW23-28-N2,SM-2025CW23-28,2,Wait for drawing confirmation from customer.,,,11
+SM-2025CW23-29-N1,SM-2025CW23-29,1,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,13
+SM-2025CW23-29-N2,SM-2025CW23-29,2,Project for welding cell is waiting for approval. Need 13 pc VR.NC 18.,,,14
+SM-2025CW23-29-N3,SM-2025CW23-29,3,"The price of local brand product is almost 15% cheaper than our table, it is look like difficult to change.",,,15
+SM-2025CW23-29-N4,SM-2025CW23-29,4,"They also have a R&D department, but the leader is busy.",,,16
+SM-2025CW23-30-N1,SM-2025CW23-30,1,Project for pick and place is waiting for approval. Need 12 pc AT1600.,,,19
+SM-2025CW23-30-N2,SM-2025CW23-30,2,Arrange appointment with Ms.Vogel in November.,green,,20
+SM-2025CW23-30-N3,SM-2025CW23-30,3,"Their buesiness is decreased than last year, many update requirement project this year.",,,21
+SM-2025CW23-30-N4,SM-2025CW23-30,4,The replacement motor has not arrived yet.,,,22
+SM-2025CW23-30-N5,SM-2025CW23-30,5,local brand offered 50% lower price. Customer ask for discount.,,,23
+SM-2025CW23-31-N1,SM-2025CW23-31,1,They plan to buy 9 pcs ER15 D4 per year.,,,24
+SM-2025CW23-31-N2,SM-2025CW23-31,2,The replacement sensor has not arrived yet.,,,25
+SM-2025CW23-31-N3,SM-2025CW23-31,3,"The price of Gamma product is almost 20% cheaper than our table, it is look like difficult to change.",,,26
+SM-2025CW23-31-N4,SM-2025CW23-31,4,"Select 9 pcs ER15 D4 for the new project, will get order in March.",,,27
+SM-2025CW23-32-N1,SM-2025CW23-32,1,Used 14 - 19 pcs Gamma table per year.,,,28
+SM-2025CW23-32-N2,SM-2025CW23-32,2,Send comparison with Gamma to Mr.Liu.,green,,29
+SM-2025CW23-32-N3,SM-2025CW23-32,3,"Their business is decreased than last year, many update requirement project this year.",,,30
+SM-2025CW23-32-N4,SM-2025CW23-32,4,Gamma offered 50% lower price. Customer ask for discount.,,,31
+SM-2025CW24-34-N1,SM-2025CW24-34,1,Project for testing equipment is delayed because of budget. Need 16 pc ER.13.,,,10
+SM-2025CW24-34-N2,SM-2025CW24-34,2,They plan to buy 16 pcs ER.13 per year.,,,11
+SM-2025CW24-34-N3,SM-2025CW24-34,3,Send comparison with Taiwan DEX to Ms.Zhou.,green,,12
+SM-2025CW24-35-N1,SM-2025CW24-35,1,"Customer asked for quotation of 11 pc orange table, delivery time is important.",,,13
+SM-2025CW24-35-N2,SM-2025CW24-35,2,"Their business is better than last year, many update requirement project this year.",,,14
+SM-2025CW24-35-N3,SM-2025CW24-35,3,They plan to buy 11 pcs orange table per year.,,,15
+SM-2025CW24-35-N4,SM-2025CW24-35,4,The replacement encoder cable has not arrived yet.,,,16
+SM-2025CW24-35-N5,SM-2025CW24-35,5,"The price of Weiss product is almost 40% cheaper than our table, it is look like difficult to change.",,,17
+SM-2025CW24-36-N1,SM-2025CW24-36,1,"Lixing is supplier in welding area, mostly welding cell.",,,18
+SM-2025CW24-36-N2,SM-2025CW24-36,2,"The price of Gamma product is almost 15% cheaper than our table, it is look like difficult to change.",,,19
+SM-2025CW24-36-N3,SM-2025CW24-36,3,"They also have a overseas business department, but the leader is busy.",,,20
+SM-2025CW24-36-N4,SM-2025CW24-36,4,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,21
+SM-2025CW24-36-N5,SM-2025CW24-36,5,"No business in 3C area, mostly in 3C.",,,22
+SM-2025CW24-37-N1,SM-2025CW24-37,1,We had cooperation with another department of the group before.,,,24
+SM-2025CW24-37-N2,SM-2025CW24-37,2,Wait for drawing confirmation from customer.,yellow,,25
+SM-2025CW24-38-N1,SM-2025CW24-38,1,Promote Fibro ER15 D4 table and start contact with the customers.,green,Send quotation before end of this week.,27
+SM-2025CW24-38-N2,SM-2025CW24-38,2,Used 18 - 23 pcs Gamma table per year.,,,28
+SM-2025CW24-39-N1,SM-2025CW24-39,1,Mr.Wu is purchasing manager. He was introduced us to the overseas business team.,,,30
+SM-2025CW24-39-N2,SM-2025CW24-39,2,"The price of Weiss product is almost 30% cheaper than our table, it is look like difficult to change.",,,31
+SM-2025CW24-39-N3,SM-2025CW24-39,3,They will inquire us if they have new project.,,,32
+SM-2025CW24-39-N4,SM-2025CW24-39,4,Send comparison with Weiss to Mr.Wu.,,Reply to customer in 3 days.,33
+SM-2025CW25-40-N1,SM-2025CW25-40,1,"The price of Sandex product is almost 40% cheaper than our table, it is look like difficult to change.",,,10
+SM-2025CW25-40-N2,SM-2025CW25-40,2,Technical problem with VR.NC 18: position drift after 3 months. Need support from HQ.,,,11
+SM-2025CW25-40-N3,SM-2025CW25-40,3,"They also have a overseas buesiness department, but the leader is busy.",,,12
+SM-2025CW25-40-N4,SM-2025CW25-40,4,Will send quotation for 2 pc VR.NC 18 this week.,green,,13
+SM-2025CW25-41-N1,SM-2025CW25-41,1,The replacement encoder cable has not arrived yet.,,,15
+SM-2025CW25-41-N2,SM-2025CW25-41,2,"Select 15 pcs VR.NC 18 for the new project, will get order in May.",,,16
+SM-2025CW25-41-N3,SM-2025CW25-41,3,"Customer asked for quotation of 15 pc VR.NC 18, delivery time is important.",,,17
+SM-2025CW25-41-N4,SM-2025CW25-41,4,Project for coil winding line is running well. Need 15 pc VR.NC 18.,,,18
+SM-2025CW25-41-N5,SM-2025CW25-41,5,Taiwan DEX offered 15% lower price. Customer ask for discount.,,,19
+SM-2025CW25-42-N1,SM-2025CW25-42,1,Arrange appointment with Ms.Vogel in March.,green,Appointment should be arrange in this month.,21
+SM-2025CW25-42-N2,SM-2025CW25-42,2,"Their business is decreased than last year, many update requirement project this year.",,,22
+SM-2025CW25-43-N1,SM-2025CW25-43,1,Their customer is tier 1 and have good business in oversea.,,,24
+SM-2025CW25-43-N2,SM-2025CW25-43,2,They used Taiwan DEX table for fixture turning system. Mostly size is about 200-300mm.,,,25
+SM-2025CW25-43-N3,SM-2025CW25-43,3,Wait for drawing confirmation from customer.,yellow,,26
+SM-2025CW25-44-N1,SM-2025CW25-44,1,Taiwan DEX offered 50% lower price. Customer ask for discount.,,,29
+SM-2025CW25-44-N2,SM-2025CW25-44,2,"Select 14 pcs ER.13 for the new project, will get order in March.",,,30
+SM-2025CW25-44-N3,SM-2025CW25-44,3,"The price of Taiwan DEX product is almost 50% cheaper than our table, it is look like difficult to change.",,,31
+SM-2025CW26-46-N1,SM-2025CW26-46,1,Cancelled by customer.,green,,10
+SM-2025CW26-46-N2,SM-2025CW26-46,2,Arrange visit in CW 28,green,,11
+SM-2025CW26-47-N1,SM-2025CW26-47,1,Project for coil winding line is running well. Need 6 pc orange table.,,,13
+SM-2025CW26-48-N1,SM-2025CW26-48,1,They will inquire us if they have new project.,,,16
+SM-2025CW26-48-N2,SM-2025CW26-48,2,Their customer is tier 1 and have good business in oversea.,,,17
+SM-2025CW26-48-N3,SM-2025CW26-48,3,Arrange visit in CW 30.,green,Send quotation before end of this week.,18
+SM-2025CW27-50-N1,SM-2025CW27-50,1,Arrange visit in CW 30.,green,,10
+SM-2025CW27-50-N2,SM-2025CW27-50,2,"Customer asked for quotation of 11 pc ER.11, delivery time is important.",,,11
+SM-2025CW27-51-N1,SM-2025CW27-51,1,Project for fixture turning system is waiting for approval. Need 17 pc AT1600.,,,13
+SM-2025CW27-51-N2,SM-2025CW27-51,2,"Select 17 pcs AT1600 for the new project, will get order in September.",,,14
+SM-2025CW27-51-N3,SM-2025CW27-51,3,Used 17 - 22 pcs Genlong table per year.,,,15
+SM-2025CW27-51-N4,SM-2025CW27-51,4,"Customer asked for quotation of 17 pc AT1600, delivery time is important.",,,16
+SM-2025CW27-51-N5,SM-2025CW27-51,5,Will send quotation for 17 pc AT1600 this week.,green,Follow up in CW 31.,17
+SM-2025CW27-52-N1,SM-2025CW27-52,1,"Select 20 pcs ER.10 for the new project, will get order in October.",,,20
+SM-2025CW27-52-N2,SM-2025CW27-52,2,"Customer asked for quotation of 20 pc ER.10, delivery time is important.",,,21
+SM-2025CW27-52-N3,SM-2025CW27-52,3,"The price of Huilin product is almost 40% cheaper than our table, it is look like difficult to change.",,,22
+SM-2025CW27-52-N4,SM-2025CW27-52,4,Wait for drawing confirmation from customer.,yellow,,23
+SM-2025CW27-52-N5,SM-2025CW27-52,5,Project for coil winding line is running well. Need 20 pc ER.10.,,,24
+SM-2025CW27-53-N1,SM-2025CW27-53,1,Cancelled by customer.,green,,27
+SM-2025CW27-53-N2,SM-2025CW27-53,2,Arrange visit in CW 28,green,,28
+SM-2025CW27-54-N1,SM-2025CW27-54,1,They plan to buy 7 pcs ER11 D2 per year.,,,31
+SM-2025CW27-54-N2,SM-2025CW27-54,2,Used 7 - 12 pcs Weiss table per year.,,,32
+SM-2025CW27-54-N3,SM-2025CW27-54,3,"The price of Weiss product is almost 50% cheaper than our table, it is look like difficult to change.",,,33
+SM-2025CW27-54-N4,SM-2025CW27-54,4,"Select 7 pcs ER11 D2 for the new project, will get order in August.",,,34
+SM-2025CW27-54-N5,SM-2025CW27-54,5,Technical problem with ER11 D2: encoder error. Need support from HQ.,,,35
+SM-2025CW27-55-N1,SM-2025CW27-55,1,"Their business is decreased than last year, many update requirement project this year.",,,38
+SM-2025CW27-55-N2,SM-2025CW27-55,2,Send comparison with Weiss to Ms.Liu.,green,,39
+SM-2025CW27-56-N1,SM-2025CW27-56,1,The replacement sensor has not arrived yet.,,,41
+SM-2025CW28-58-N1,SM-2025CW28-58,1,The replacement sensor has not arrived yet.,,,10
+SM-2025CW28-58-N2,SM-2025CW28-58,2,"They also have a R&D department, but the leader is busy.",,,11
+SM-2025CW28-58-N3,SM-2025CW28-58,3,They plan to buy 13 pcs VR.NC 18 per year.,,,12
+SM-2025CW28-59-N1,SM-2025CW28-59,1,Wait for drawing confirmation from customer.,yellow,,13
+SM-2025CW28-59-N2,SM-2025CW28-59,2,The replacement motor has not arrived yet.,,,14
+SM-2025CW28-59-N3,SM-2025CW28-59,3,Used 7 - 12 pcs Gamma table per year.,,,15
+SM-2025CW28-60-N1,SM-2025CW28-60,1,Used 8 - 13 pcs Huilin table per year.,,,16
+SM-2025CW28-61-N1,SM-2025CW28-61,1,Project for fixture turning system is waiting for approval. Need 4 pc orange table.,,,19
+SM-2025CW29-62-N1,SM-2025CW29-62,1,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,10
+SM-2025CW29-62-N2,SM-2025CW29-62,2,"Their buesiness is better than last year, many update requirement project this year.",,,11
+SM-2025CW29-63-N1,SM-2025CW29-63,1,They plan to buy 9 pcs VR.NC 18 per year.,,,14
+SM-2025CW29-63-N2,SM-2025CW29-63,2,The replacement encoder cable has not arrived yet.,,,15
+SM-2025CW29-63-N3,SM-2025CW29-63,3,Arrange visit in CW 32.,green,Send quotation before end of this week.,16
+SM-2025CW29-64-N1,SM-2025CW29-64,1,Promote Fibro ER.10 table and start contact with the customers.,green,,18
+SM-2025CW29-64-N2,SM-2025CW29-64,2,"Their business is better than last year, many update requirement project this year.",,,19
+SM-2025CW29-64-N3,SM-2025CW29-64,3,Project for fixture turning system is still in design stage. Need 17 pc ER.10.,,,20
+SM-2025CW29-65-N1,SM-2025CW29-65,1,They plan to buy 5 pcs VR.NC 18 per year.,,,23
+SM-2025CW29-65-N2,SM-2025CW29-65,2,Technical problem with VR.NC 18: position drift after 3 months. Need support from HQ.,,,24
+SM-2025CW29-65-N3,SM-2025CW29-65,3,"Their business is decreased than last year, many update requirement project this year.",,,25
+SM-2025CW29-65-N4,SM-2025CW29-65,4,Send comparison with Sandex to Mr.Liu.,green,SunMei will follow up this customer.,26
+SM-2025CW29-66-N1,SM-2025CW29-66,1,Cancelled by customer.,green,,28
+SM-2025CW29-66-N2,SM-2025CW29-66,2,Arrange visit in CW 31,green,,29
+SM-2025CW29-67-N1,SM-2025CW29-67,1,"The price of local brand product is almost 15% cheaper than our table, it is look like difficult to change.",,,31
+SM-2025CW29-67-N2,SM-2025CW29-67,2,"Lanxi is supplier in motor and engine assembly area, mostly testing equipment.",,,32
+SM-2025CW29-67-N3,SM-2025CW29-67,3,Arrange visit in CW 32.,green,,33
+SM-2025CW30-69-N1,SM-2025CW30-69,1,"Select 18 pcs orange table for the new project, will get order in March.",,,10
+SM-2025CW30-69-N2,SM-2025CW30-69,2,"Customer asked for quotation of 18 pc orange table, delivery time is important.",,,11
+SM-2025CW30-69-N3,SM-2025CW30-69,3,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,12
+SM-2025CW30-69-N4,SM-2025CW30-69,4,"They also have a service department, but the leader is busy.",,,13
+SM-2025CW30-69-N5,SM-2025CW30-69,5,Used 18 - 23 pcs Taiwan DEX table per year.,,,14
+SM-2025CW30-70-N1,SM-2025CW30-70,1,Arrange visit in CW 34.,green,,16
+SM-2025CW30-70-N2,SM-2025CW30-70,2,"Their business is decreased than last year, many update requirement project this year.",,,17
+SM-2025CW30-70-N3,SM-2025CW30-70,3,They used Gamma table for pick and place. Mostly size is about 200-300mm.,,,18
+SM-2025CW30-71-N1,SM-2025CW30-71,1,"Select 6 pcs orange table for the new project, will get order in March.",,,20
+SM-2025CW30-71-N2,SM-2025CW30-71,2,"Their buesiness is decreased than last year, many update requirement project this year.",,,21
+SM-2025CW30-71-N3,SM-2025CW30-71,3,Will go to the enduser site together with distributor in CW 31.,,SunMei will follow up this customer.,22
+SM-2025CW30-72-N1,SM-2025CW30-72,1,"They also have a R&D department, but the leader is busy.",,,25
+SM-2025CW30-72-N2,SM-2025CW30-72,2,Taiwan DEX offered 40% lower price. Customer ask for discount.,,,26
+SM-2025CW30-73-N1,SM-2025CW30-73,1,"The price of local brand product is almost 50% cheaper than our table, it is look like difficult to change.",,,29
+SM-2025CW30-73-N2,SM-2025CW30-73,2,The replacement motor has not arrived yet.,,,30
+SM-2025CW30-73-N3,SM-2025CW30-73,3,"Their business is decreased than last year, many update requirement project this year.",,,31
+SM-2025CW30-73-N4,SM-2025CW30-73,4,Will go to the enduser site together with distributor in CW 34.,green,,32
+SM-2025CW30-74-N1,SM-2025CW30-74,1,Arrange visit in CW 31.,green,,34
+SM-2025CW30-74-N2,SM-2025CW30-74,2,Mr.He is general manager. He was introduced us to the BIW business team.,,,35
+SM-2025CW30-75-N1,SM-2025CW30-75,1,Promote Fibro orange table table and start contact with the custmers.,green,,37
+SM-2025CW30-75-N2,SM-2025CW30-75,2,"The price of local brand product is almost 20% cheaper than our table, it is look like difficult to change.",,,38
+SM-2025CW30-75-N3,SM-2025CW30-75,3,Technical problem with orange table: position drift after 3 months. Need support from HQ.,,,39
+SM-2025CW30-75-N4,SM-2025CW30-75,4,They plan to buy 1 pcs orange table per year.,,,40
+SM-2025CW31-77-N1,SM-2025CW31-77,1,"They also have a overseas business department, but the leader is busy.",,,10
+SM-2025CW31-77-N2,SM-2025CW31-77,2,The replacement gearbox has not arrived yet.,,,11
+SM-2025CW31-77-N3,SM-2025CW31-77,3,They plan to buy 3 pcs VR.NC 18 per year.,,,12
+SM-2025CW31-78-N1,SM-2025CW31-78,1,"They also have a R&D department, but the leader is busy.",,,13
+SM-2025CW31-78-N2,SM-2025CW31-78,2,"The price of Genlong product is almost 15% cheaper than our table, it is look like difficult to change.",,,14
+SM-2025CW31-78-N3,SM-2025CW31-78,3,Technical problem with ER.11: oil leakage at housing. Need support from HQ.,,,15
+SM-2025CW31-79-N1,SM-2025CW31-79,1,Project for welding cell is still in design stage. Need 15 pc ER15 D4.,,,18
+SM-2025CW31-80-N1,SM-2025CW31-80,1,Cancelled by customer.,green,,21
+SM-2025CW31-80-N2,SM-2025CW31-80,2,Arrange visit in CW 32,green,,22
+SM-2025CW31-81-N1,SM-2025CW31-81,1,We had cooperation with another department of the group before.,,,24
+SM-2025CW31-81-N2,SM-2025CW31-81,2,Will go to the enduser site together with distributor in CW 32.,green,,25
+SM-2025CW31-81-N3,SM-2025CW31-81,3,Their customer is tier 1 and have good business in oversea.,,,26
+SM-2025CW31-82-N1,SM-2025CW31-82,1,"Their business is decreased than last year, many update requirement project this year.",,,27
+SM-2025CW31-82-N2,SM-2025CW31-82,2,"Customer asked for quotation of 4 pc ER.13, delivery time is important.",,,28
+SM-2025CW31-82-N3,SM-2025CW31-82,3,Weiss offered 15% lower price. Customer ask for discount.,,,29
+SM-2025CW31-82-N4,SM-2025CW31-82,4,"Select 4 pcs ER.13 for the new project, will get order in October.",,,30
+SM-2025CW31-84-N1,SM-2025CW31-84,1,There are approximately dozens of equipment manufacturers doing the assembly machine. Most of them used Gamma table.,,,35
+SM-2025CW31-84-N2,SM-2025CW31-84,2,Promote Fibro ER11 D2 table and start contact with the customers. Will arrange visit in CW 33 and CW 34.,green,,36
+ZL-2025CW17-01-N1,ZL-2025CW17-01,1,Cancelled by customer.,green,,10
+ZL-2025CW17-01-N2,ZL-2025CW17-01,2,Arrange visit in CW 19,green,,11
+ZL-2025CW17-02-N1,ZL-2025CW17-02,1,They used Huilin table for inspection station. Mostly size is about 200-300mm.,,,13
+ZL-2025CW17-02-N2,ZL-2025CW17-02,2,"Their business is better than last year, many update requirement project this year.",,,14
+ZL-2025CW17-03-N1,ZL-2025CW17-03,1,Cancelled by customer.,green,,16
+ZL-2025CW17-03-N2,ZL-2025CW17-03,2,Arrange visit in CW 20,green,,17
+ZL-2025CW18-05-N1,ZL-2025CW18-05,1,"Jinhai is supplier in packaging and printing area, mostly laser cutting.",,,10
+ZL-2025CW18-06-N1,ZL-2025CW18-06,1,Cancelled by customer.,green,,13
+ZL-2025CW18-06-N2,ZL-2025CW18-06,2,Arrange visit in CW 21,green,,14
+ZL-2025CW19-07-N1,ZL-2025CW19-07,1,Wait for drawing confirmation from customer.,yellow,,10
+ZL-2025CW19-07-N2,ZL-2025CW19-07,2,"Customer asked for quotation of 13 pc ER11 D2, delivery time is important.",,,11
+ZL-2025CW19-08-N1,ZL-2025CW19-08,1,"Waiting for PO, customer say budget approval in March.",yellow,,13
+ZL-2025CW19-08-N2,ZL-2025CW19-08,2,"Their business is decreased than last year, many update requirement project this year.",,,14
+ZL-2025CW19-08-N3,ZL-2025CW19-08,3,"No business in automobile area, mostly in 3C.",,,15
+ZL-2025CW19-08-N4,ZL-2025CW19-08,4,They used Gamma table for testing equipment. Mostly size is about 200-500mm.,,,16
+ZL-2025CW20-10-N1,ZL-2025CW20-10,1,Will send quotation for 16 pc VR.NC 18 this week.,green,,10
+ZL-2025CW20-10-N2,ZL-2025CW20-10,2,They will inquire us if they have new project.,,,11
+ZL-2025CW20-10-N3,ZL-2025CW20-10,3,They used local brand table for assembly line. Mostly size is about 200-500mm.,,,12
+ZL-2025CW20-11-N1,ZL-2025CW20-11,1,Sandex offered 15% lower price. Customer ask for discount.,,,15
+ZL-2025CW20-11-N2,ZL-2025CW20-11,2,"Select 16 pcs ER.11 for the new project, will get order in August.",,,16
+ZL-2025CW20-11-N3,ZL-2025CW20-11,3,"Their business is decreased than last year, many update requirement project this year.",,,17
+ZL-2025CW20-12-N1,ZL-2025CW20-12,1,"Their business is decreased than last year, many update requirement project this year.",,,19
+ZL-2025CW20-12-N2,ZL-2025CW20-12,2,The replacement encoder cable has not arrived yet.,,,20
+ZL-2025CW20-12-N3,ZL-2025CW20-12,3,They plan to buy 3 pcs ER.13 per year.,,,21
+ZL-2025CW20-12-N4,ZL-2025CW20-12,4,Will send quatation for 3 pc ER.13 this week.,green,,22
+ZL-2025CW20-13-N1,ZL-2025CW20-13,1,"They also have a service department, but the leader is busy.",,,25
+ZL-2025CW21-15-N1,ZL-2025CW21-15,1,"Their business is decreased than last year, many update requirement project this year.",,,10
+ZL-2025CW21-15-N2,ZL-2025CW21-15,2,We had cooperation with another department of the group before.,,,11
+ZL-2025CW21-16-N1,ZL-2025CW21-16,1,Cancelled by customer.,green,,14
+ZL-2025CW21-16-N2,ZL-2025CW21-16,2,Arrange visit in CW 23,green,,15
+ZL-2025CW21-17-N1,ZL-2025CW21-17,1,Send comparison with Sandex to Mr.Yang.,,,17
+ZL-2025CW21-17-N2,ZL-2025CW21-17,2,"They also have a R&D department, but the leader is busy.",,,18
+ZL-2025CW21-18-N1,ZL-2025CW21-18,1,Used 12 - 17 pcs Huilin table per year.,,,20
+ZL-2025CW21-19-N1,ZL-2025CW21-19,1,"Their business is decreased than last year, many update requirement project this year.",,,23
+ZL-2025CW21-19-N2,ZL-2025CW21-19,2,Used 14 - 19 pcs Gamma table per year.,,,24
+ZL-2025CW22-21-N1,ZL-2025CW22-21,1,Will send quotation for 7 pc AT1600 this week.,green,,10
+ZL-2025CW22-21-N2,ZL-2025CW22-21,2,They used Sandex table for laser cutting. Mostly size is about 200-500mm.,,,11
+ZL-2025CW22-21-N3,ZL-2025CW22-21,3,"Their business is decreased than last year, many update requirement project this year.",,,12
+ZL-2025CW22-21-N4,ZL-2025CW22-21,4,We had cooperation with another department of the group before.,,,13
+ZL-2025CW22-22-N1,ZL-2025CW22-22,1,Cancelled by customer.,green,,14
+ZL-2025CW22-22-N2,ZL-2025CW22-22,2,Arrange visit in CW 25,green,,15
+ZL-2025CW22-23-N1,ZL-2025CW22-23,1,Used 13 - 18 pcs Gamma table per year.,,,17
+ZL-2025CW22-23-N2,ZL-2025CW22-23,2,Send comparison with Gamma to Mr.Li.,,,18
+ZL-2025CW22-23-N3,ZL-2025CW22-23,3,The replacement encoder cable has not arrived yet.,,,19
+ZL-2025CW22-23-N4,ZL-2025CW22-23,4,"They also have a R&D department, but the leader is busy.",,,20
+ZL-2025CW22-23-N5,ZL-2025CW22-23,5,"Customer asked for quotation of 13 pc ER11 D2, delivery time is important.",,,21
+ZL-2025CW22-24-N1,ZL-2025CW22-24,1,Arrange visit in CW 23.,,Contact with Weida.,24
+ZL-2025CW22-24-N2,ZL-2025CW22-24,2,"The price of Gamma product is almost 50% cheaper than our table, it is look like difficult to change.",,,25
+ZL-2025CW22-24-N3,ZL-2025CW22-24,3,They will inquire us if they have new project.,,,26
+ZL-2025CW22-25-N1,ZL-2025CW22-25,1,Mr.Yang is production manager. He was introduced us to the service team.,,,27
+ZL-2025CW22-25-N2,ZL-2025CW22-25,2,They will inquire us if they have new project.,,,28
+ZL-2025CW22-25-N3,ZL-2025CW22-25,3,Arrange appointment with Mr.Becker in September.,green,,29
+ZL-2025CW22-25-N4,ZL-2025CW22-25,4,They used Sandex table for coil winding line. Mostly size is about 200-500mm.,,,30
+ZL-2025CW23-26-N1,ZL-2025CW23-26,1,Cancelled by customer.,green,,10
+ZL-2025CW23-26-N2,ZL-2025CW23-26,2,Arrange visit in CW 26,green,,11
+ZL-2025CW23-27-N1,ZL-2025CW23-27,1,Used 16 - 21 pcs Weiss table per year.,,,13
+ZL-2025CW23-27-N2,ZL-2025CW23-27,2,"They also have a BIW business department, but the leader is busy.",,,14
+ZL-2025CW23-27-N3,ZL-2025CW23-27,3,"The price of Weiss product is almost 50% cheaper than our table, it is look like difficult to change.",,,15
+ZL-2025CW23-27-N4,ZL-2025CW23-27,4,"Customer asked for quotation of 16 pc ER11 D2, delivery time is important.",,,16
+ZL-2025CW23-27-N5,ZL-2025CW23-27,5,Arrange visit in CW 26.,green,Reply to customer in 3 days.,17
+ZL-2025CW23-28-N1,ZL-2025CW23-28,1,There are approximately dozens of equipment manufacturers doing the assembly machine. Most of them used Huilin table.,,,19
+ZL-2025CW23-28-N2,ZL-2025CW23-28,2,Promote Fibro AT1600 table and start contact with the customers. Will arrange visit in CW 25 and CW 26.,green,,20
+ZL-2025CW23-29-N1,ZL-2025CW23-29,1,We had cooperation with another department of the group before.,,,23
+ZL-2025CW23-29-N2,ZL-2025CW23-29,2,"No business in automobile area, mostly in 3C.",,,24
+ZL-2025CW23-29-N3,ZL-2025CW23-29,3,Mr.Chen is technical director. He was introduced us to the R&D team.,,,25
+ZL-2025CW23-30-N1,ZL-2025CW23-30,1,"Customer asked for quotation of 11 pc ER.10, delivery time is important.",,,28
+ZL-2025CW23-30-N2,ZL-2025CW23-30,2,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,29
+ZL-2025CW23-30-N3,ZL-2025CW23-30,3,"Their business is decreased than last year, many update requirement project this year.",,,30
+ZL-2025CW24-32-N1,ZL-2025CW24-32,1,Arrange visit in CW 26.,green,,10
+ZL-2025CW24-32-N2,ZL-2025CW24-32,2,"They also have a overseas buesiness department, but the leader is busy.",,,11
+ZL-2025CW24-32-N3,ZL-2025CW24-32,3,"Customer asked for quotation of 18 pc ER.13, delivery time is important.",,,12
+ZL-2025CW24-32-N4,ZL-2025CW24-32,4,Technical problem with ER.13: oil leakage at housing. Need support from HQ.,,,13
+ZL-2025CW24-33-N1,ZL-2025CW24-33,1,"Customer asked for quotation of 10 pc ER.13, delivery time is important.",,,15
+ZL-2025CW24-33-N2,ZL-2025CW24-33,2,They plan to buy 10 pcs ER.13 per year.,,,16
+ZL-2025CW24-34-N1,ZL-2025CW24-34,1,"Select 11 pcs orange table for the new project, will get order in May.",,,18
+ZL-2025CW24-34-N2,ZL-2025CW24-34,2,"The price of Gamma product is almost 50% cheaper than our table, it is look like difficult to change.",,,19
+ZL-2025CW24-34-N3,ZL-2025CW24-34,3,Technical problem with orange table: oil leakage at housing. Need support from HQ.,,,20
+ZL-2025CW24-34-N4,ZL-2025CW24-34,4,"They also have a BIW business department, but the leader is busy.",,,21
+ZL-2025CW25-36-N1,ZL-2025CW25-36,1,The replacement encoder cable has not arrived yet.,,,10
+ZL-2025CW25-37-N1,ZL-2025CW25-37,1,"They also have a R&D department, but the leader is busy.",,,13
+ZL-2025CW25-37-N2,ZL-2025CW25-37,2,The replacement encoder cable has not arrived yet.,,,14
+ZL-2025CW25-37-N3,ZL-2025CW25-37,3,"Select 11 pcs orange table for the new project, will get order in September.",,,15
+ZL-2025CW25-38-N1,ZL-2025CW25-38,1,"Customer asked for quatation of 12 pc ER15 D4, delivery time is important.",,,17
+ZL-2025CW25-39-N1,ZL-2025CW25-39,1,"Waiting for PO, customer say budget approval in December.",,,20
+ZL-2025CW25-39-N2,ZL-2025CW25-39,2,Project for welding cell is waiting for approval. Need 14 pc ER15 D4.,,,21
+ZL-2025CW25-39-N3,ZL-2025CW25-39,3,Used 14 - 19 pcs Genlong table per year.,,,22
+ZL-2025CW26-40-N1,ZL-2025CW26-40,1,There are approximately dozens of equipment manufacturers doing the assembly machine. Most of them used Weiss table.,,,10
+ZL-2025CW26-40-N2,ZL-2025CW26-40,2,Promote Fibro ER11 D2 table and start contact with the customers. Will arrange visit in CW 28 and CW 29.,green,,11
+ZL-2025CW26-41-N1,ZL-2025CW26-41,1,Weiss offered 30% lower price. Customer ask for discount.,,,14
+ZL-2025CW26-41-N2,ZL-2025CW26-41,2,"Waiting for PO, customer say budget approval in March.",yellow,,15
+ZL-2025CW26-41-N3,ZL-2025CW26-41,3,"Customer asked for quotation of 12 pc ER.13, delivery time is important.",,,16
+ZL-2025CW26-41-N4,ZL-2025CW26-41,4,"They also have a service department, but the leader is busy.",,,17
+ZL-2025CW26-41-N5,ZL-2025CW26-41,5,Technical problem with ER.13: noise at high speed. Need support from HQ.,,,18
+ZL-2025CW26-42-N1,ZL-2025CW26-42,1,"The price of Gamma product is almost 30% cheaper than our table, it is look like difficult to change.",,,20
+ZL-2025CW26-42-N2,ZL-2025CW26-42,2,Used 7 - 12 pcs Gamma table per year.,,,21
+ZL-2025CW26-42-N3,ZL-2025CW26-42,3,"Waiting for PO, customer say budget approval in November.",yellow,Appointment should be arrange in this month.,22
+ZL-2025CW26-43-N1,ZL-2025CW26-43,1,They plan to buy 10 pcs ER.11 per year.,,,23
+ZL-2025CW26-43-N2,ZL-2025CW26-43,2,Wait for drawing confirmation from customer.,yellow,,24
+ZL-2025CW26-43-N3,ZL-2025CW26-43,3,Project for packaging machine is delayed because of budget. Need 10 pc ER.11.,,,25
+ZL-2025CW27-44-N1,ZL-2025CW27-44,1,The replacement motor has not arrived yet.,,,10
+ZL-2025CW27-44-N2,ZL-2025CW27-44,2,Used 13 - 18 pcs local brand table per year.,,,11
+ZL-2025CW27-44-N3,ZL-2025CW27-44,3,Send comparison with local brand to Ms.Chen.,green,,12
+ZL-2025CW27-45-N1,ZL-2025CW27-45,1,Technical problem with AT1600: position drift after 3 months. Need support from HQ.,,,14
+ZL-2025CW27-45-N2,ZL-2025CW27-45,2,"They also have a R&D department, but the leader is busy.",,,15
+ZL-2025CW27-45-N3,ZL-2025CW27-45,3,"Select 9 pcs AT1600 for the new project, will get order in August.",,,16
+ZL-2025CW27-46-N1,ZL-2025CW27-46,1,Sandex offered 40% lower price. Customer ask for discount.,,,18
+ZL-2025CW27-47-N1,ZL-2025CW27-47,1,"Customer asked for quotation of 17 pc ER15 D4, delivery time is important.",,,21
+ZL-2025CW27-47-N2,ZL-2025CW27-47,2,"Select 17 pcs ER15 D4 for the new project, will get order in April.",,,22
+ZL-2025CW27-47-N3,ZL-2025CW27-47,3,"The price of Huilin product is almost 15% cheaper than our table, it is look like difficult to change.",,,23
+ZL-2025CW27-48-N1,ZL-2025CW27-48,1,"Select 19 pcs ER.11 for the new project, will get order in May.",,,26
+ZL-2025CW27-48-N2,ZL-2025CW27-48,2,Send comparison with Weiss to Mr.Yang.,green,ZhaoLei will follow up this customer.,27
+ZL-2025CW27-48-N3,ZL-2025CW27-48,3,"The price of Weiss product is almost 50% cheaper than our table, it is look like difficult to change.",,,28
+ZL-2025CW27-48-N4,ZL-2025CW27-48,4,"Their business is decreased than last year, many update requirement project this year.",,,29
+ZL-2025CW28-50-N1,ZL-2025CW28-50,1,Technical problem with orange table: oil leakage at housing. Need support from HQ.,,,10
+ZL-2025CW28-51-N1,ZL-2025CW28-51,1,There are approximately dozens of equipment manufacturers doing the printing machine. Most of them used Weiss table.,,,13
+ZL-2025CW28-51-N2,ZL-2025CW28-51,2,Promote Fibro ER.11 table and start contact with the customers. Will arrange visit in CW 30 and CW 31.,green,,14
+ZL-2025CW28-52-N1,ZL-2025CW28-52,1,Project for packaging machine is still in design stage. Need 7 pc ER11 D2.,,,17
+ZL-2025CW28-52-N2,ZL-2025CW28-52,2,"Waiting for PO, customer say budget approval in June.",,,18
+ZL-2025CW28-53-N1,ZL-2025CW28-53,1,Project for packaging machine is running well. Need 11 pc ER11 D2.,,,20
+ZL-2025CW28-53-N2,ZL-2025CW28-53,2,"The price of Taiwan DEX product is almost 50% cheaper than our table, it is look like difficult to change.",,,21
+ZL-2025CW28-53-N3,ZL-2025CW28-53,3,"Customer asked for quotation of 11 pc ER11 D2, delivery time is important.",,,22
+ZL-2025CW28-54-N1,ZL-2025CW28-54,1,"Select 10 pcs orange table for the new project, will get order in July.",,,24
+ZL-2025CW28-54-N2,ZL-2025CW28-54,2,Will send quotation for 10 pc orange table this week.,green,,25
+ZL-2025CW28-55-N1,ZL-2025CW28-55,1,Used 10 - 15 pcs local brand table per year.,,,27
+ZL-2025CW28-56-N1,ZL-2025CW28-56,1,Their customer is tier 1 and have good business in oversea.,,,30
+ZL-2025CW28-56-N2,ZL-2025CW28-56,2,Will go to the enduser site together with distributor in CW 29.,green,,31
+ZL-2025CW29-57-N1,ZL-2025CW29-57,1,There are approximately dozens of equipment manufacturers doing the packaging machine. Most of them used Taiwan DEX table.,,,10
+ZL-2025CW29-57-N2,ZL-2025CW29-57,2,Promote Fibro AT1600 table and start contact with the customers. Will arrange visit in CW 31 and CW 32.,green,,11
+ZL-2025CW29-58-N1,ZL-2025CW29-58,1,"Customer asked for quotation of 10 pc ER.11, delivery time is important.",,,13
+ZL-2025CW29-58-N2,ZL-2025CW29-58,2,"They also have a BIW business department, but the leader is busy.",,,14
+ZL-2025CW29-58-N3,ZL-2025CW29-58,3,Technical problem with ER.11: position drift after 3 months. Need support from HQ.,,,15
+ZL-2025CW29-59-N1,ZL-2025CW29-59,1,"The price of Sandex product is almost 15% cheaper than our table, it is look like difficult to change.",,,18
+ZL-2025CW29-59-N2,ZL-2025CW29-59,2,Sandex offered 15% lower price. Customer ask for discount.,,,19
+ZL-2025CW29-59-N3,ZL-2025CW29-59,3,Wait for drawing confirmation from customer.,yellow,,20
+ZL-2025CW30-61-N1,ZL-2025CW30-61,1,Yuxin belong to Hongda group.,,,10
+ZL-2025CW30-62-N1,ZL-2025CW30-62,1,"Select 13 pcs AT1600 for the new project, will get order in August.",,,13
+ZL-2025CW30-62-N2,ZL-2025CW30-62,2,They plan to buy 13 pcs AT1600 per year.,,,14
+ZL-2025CW30-62-N3,ZL-2025CW30-62,3,"They also have a BIW business department, but the leader is busy.",,,15
+ZL-2025CW30-62-N4,ZL-2025CW30-62,4,Wait for drawing confirmation from custmer.,yellow,,16
+ZL-2025CW30-63-N1,ZL-2025CW30-63,1,Send comparison with Taiwan DEX to Mr.Hu.,green,,19
+ZL-2025CW30-63-N2,ZL-2025CW30-63,2,"Select 12 pcs VR.NC 18 for the new project, will get order in October.",,,20
+ZL-2025CW30-63-N3,ZL-2025CW30-63,3,The replacement sensor has not arrived yet.,,,21
+ZL-2025CW30-63-N4,ZL-2025CW30-63,4,"Their buesiness is better than last year, many update requirement project this year.",,,22
+ZL-2025CW30-64-N1,ZL-2025CW30-64,1,Technical problem with ER11 D2: oil leakage at housing. Need support from HQ.,,,24
+ZL-2025CW30-64-N2,ZL-2025CW30-64,2,"They also have a service department, but the leader is busy.",,,25
+CH-2025CW18-01-N1,CH-2025CW18-01,1,"No business in medical area, mostly in battery.",,,10
+CH-2025CW18-01-N2,CH-2025CW18-01,2,They used Weiss table for welding cell. Mostly size is about 200-300mm.,,,11
+CH-2025CW18-01-N3,CH-2025CW18-01,3,"They also have a R&D department, but the leader is busy.",,,12
+CH-2025CW18-02-N1,CH-2025CW18-02,1,"Their business is decreased than last year, many update requirement project this year.",,,15
+CH-2025CW18-02-N2,CH-2025CW18-02,2,We had cooperation with another department of the group before.,,,16
+CH-2025CW18-02-N3,CH-2025CW18-02,3,Their customer is tier 1 and have good buesiness in oversea.,,,17
+CH-2025CW18-02-N4,CH-2025CW18-02,4,Mr.Zhou is general manager. He was introduced us to the overseas business team.,,,18
+CH-2025CW18-03-N1,CH-2025CW18-03,1,Will go to the enduser site together with distributor in CW 19.,,Reply to customer in 3 days.,20
+CH-2025CW18-03-N2,CH-2025CW18-03,2,The replacement gearbox has not arrived yet.,,,21
+CH-2025CW18-03-N3,CH-2025CW18-03,3,"Select 2 pcs ER.10 for the new project, will get order in October.",,,22
+CH-2025CW19-05-N1,CH-2025CW19-05,1,Ms.Zhou is design engineer. She was introduced us to the BIW business team.,,,10
+CH-2025CW19-05-N2,CH-2025CW19-05,2,Arrange visit in CW 21.,,,11
+CH-2025CW19-06-N1,CH-2025CW19-06,1,They used Gamma table for packaging machine. Mostly size is about 200-500mm.,,,13
+CH-2025CW19-06-N2,CH-2025CW19-06,2,They will inquire us if they have new project.,,,14
+CH-2025CW19-06-N3,CH-2025CW19-06,3,"No buesiness in medical area, mostly in 3C.",,,15
+CH-2025CW19-06-N4,CH-2025CW19-06,4,"Zhongke is supplier in 3C electronics area, mostly assembly line.",,,16
+CH-2025CW19-06-N5,CH-2025CW19-06,5,"Their business is better than last year, many update requirement project this year.",,,17
+CH-2025CW20-08-N1,CH-2025CW20-08,1,"Customer asked for quotation of 18 pc ER11 D2, delivery time is important.",,,10
+CH-2025CW20-09-N1,CH-2025CW20-09,1,Cancelled by customer.,green,,13
+CH-2025CW20-09-N2,CH-2025CW20-09,2,Arrange visit in CW 22,green,,14
+CH-2025CW20-10-N1,CH-2025CW20-10,1,Arrange appointment with Ms.Vogel in August.,green,Reply to customer in 3 days.,16
+CH-2025CW20-10-N2,CH-2025CW20-10,2,"Their business is decreased than last year, many update requirement project this year.",,,17
+CH-2025CW20-11-N1,CH-2025CW20-11,1,"The price of local brand product is almost 40% cheaper than our table, it is look like difficult to change.",,,19
+CH-2025CW20-11-N2,CH-2025CW20-11,2,local brand offered 40% lower price. Customer ask for discount.,,,20
+CH-2025CW20-11-N3,CH-2025CW20-11,3,Technical problem with ER.10: noise at high speed. Need support from HQ.,,,21
+CH-2025CW20-12-N1,CH-2025CW20-12,1,There are approximately dozens of equipment manufacturers doing the packaging machine. Most of them used Sandex table.,,,23
+CH-2025CW20-12-N2,CH-2025CW20-12,2,Promote Fibro ER11 D2 table and start contact with the customers. Will arrange visit in CW 22 and CW 23.,green,,24
+CH-2025CW20-13-N1,CH-2025CW20-13,1,Weiss offered 50% lower price. Customer ask for discount.,,,27
+CH-2025CW20-13-N2,CH-2025CW20-13,2,Project for fixture turning system is delayed because of budget. Need 2 pc ER.10.,,,28
+CH-2025CW20-13-N3,CH-2025CW20-13,3,Arrange appointment with Ms.Vogel in June.,green,,29
+CH-2025CW20-13-N4,CH-2025CW20-13,4,"The price of Weiss product is almost 50% cheaper than our table, it is look like difficult to change.",,,30
+CH-2025CW20-13-N5,CH-2025CW20-13,5,The replacement sensor has not arrived yet.,,,31
+CH-2025CW20-14-N1,CH-2025CW20-14,1,"The price of Huilin product is almost 50% cheaper than our table, it is look like difficult to change.",,,32
+CH-2025CW20-14-N2,CH-2025CW20-14,2,Technical problem with ER.10: position drift after 3 months. Need support from HQ.,,,33
+CH-2025CW20-14-N3,CH-2025CW20-14,3,"Customer asked for quotation of 8 pc ER.10, delivery time is important.",,,34
+CH-2025CW20-14-N4,CH-2025CW20-14,4,"Select 8 pcs ER.10 for the new project, will get order in January.",,,35
+CH-2025CW20-14-N5,CH-2025CW20-14,5,"They also have a R&D department, but the leader is busy.",,,36
+CH-2025CW21-16-N1,CH-2025CW21-16,1,local brand offered 40% lower price. Customer ask for discount.,,,10
+CH-2025CW21-16-N2,CH-2025CW21-16,2,"The price of local brand product is almost 40% cheaper than our table, it is look like difficult to change.",,,11
+CH-2025CW21-16-N3,CH-2025CW21-16,3,Send comparison with local brand to Ms.Luo.,,,12
+CH-2025CW21-17-N1,CH-2025CW21-17,1,"They also have a overseas business department, but the leader is busy.",,,14
+CH-2025CW21-17-N2,CH-2025CW21-17,2,"Their business is better than last year, many update requirement project this year.",,,15
+CH-2025CW21-18-N1,CH-2025CW21-18,1,"No business in 3C area, mostly in battery.",,,17
+CH-2025CW21-18-N2,CH-2025CW21-18,2,Promote Fibro ER15 D4 table and start contact with the custmers.,green,,18
+CH-2025CW21-18-N3,CH-2025CW21-18,3,"Their buesiness is better than last year, many update requirement project this year.",,,19
+CH-2025CW21-19-N1,CH-2025CW21-19,1,Their customer is tier 1 and have good buesiness in oversea.,,,20
+CH-2025CW21-19-N2,CH-2025CW21-19,2,"No business in automobile area, mostly in 3C.",,,21
+CH-2025CW21-19-N3,CH-2025CW21-19,3,Arrange appointment with Mr.Hartmann in June.,,,22
+CH-2025CW21-19-N4,CH-2025CW21-19,4,"Zhongke is supplier in 3C electronics area, mostly fixture turning system.",,,23
+CH-2025CW21-20-N1,CH-2025CW21-20,1,"They also have a overseas business department, but the leader is busy.",,,24
+CH-2025CW21-20-N2,CH-2025CW21-20,2,They will inquire us if they have new project.,,,25
+CH-2025CW21-21-N1,CH-2025CW21-21,1,There are approximately dozens of equipment manufacturers doing the packaging machine. Most of them used Gamma table.,,,27
+CH-2025CW21-21-N2,CH-2025CW21-21,2,Promote Fibro VR.NC 18 table and start contact with the customers. Will arrange visit in CW 23 and CW 24.,green,,28
+CH-2025CW22-23-N1,CH-2025CW22-23,1,Promote Fibro ER.11 table and start contact with the customers.,,,10
+CH-2025CW22-23-N2,CH-2025CW22-23,2,"Their business is decreased than last year, many update requirement project this year.",,,11
+CH-2025CW22-23-N3,CH-2025CW22-23,3,Mr.Chen is production manager. He was introduced us to the service team.,,,12
+CH-2025CW22-23-N4,CH-2025CW22-23,4,"The price of Gamma product is almost 20% cheaper than our table, it is look like difficult to change.",,,13
+CH-2025CW22-24-N1,CH-2025CW22-24,1,They will inquire us if they have new project.,,,15
+CH-2025CW22-24-N2,CH-2025CW22-24,2,"Their business is decreased than last year, many update requirement project this year.",,,16
+CH-2025CW22-24-N3,CH-2025CW22-24,3,"The price of Huilin product is almost 30% cheaper than our table, it is look like difficult to change.",,,17
+CH-2025CW22-24-N4,CH-2025CW22-24,4,We had cooperation with another department of the group before.,,,18
+CH-2025CW22-25-N1,CH-2025CW22-25,1,"Jiahe is supplier in new energy battery area, mostly packaging machine.",,,21
+CH-2025CW22-25-N2,CH-2025CW22-25,2,Promote Fibro VR.NC 18 table and start contact with the customers.,green,,22
+CH-2025CW22-25-N3,CH-2025CW22-25,3,Their customer is tier 1 and have good business in oversea.,,,23
+CH-2025CW22-26-N1,CH-2025CW22-26,1,"The price of Huilin product is almost 15% cheaper than our table, it is look like difficult to change.",,,24
+CH-2025CW22-26-N2,CH-2025CW22-26,2,Promote Fibro ER.11 table and start contact with the customers.,green,ChenHao will follow up this customer.,25
+CH-2025CW22-26-N3,CH-2025CW22-26,3,"Their business is better than last year, many update requirement project this year.",,,26
+CH-2025CW22-26-N4,CH-2025CW22-26,4,"They also have a overseas business department, but the leader is busy.",,,27
+CH-2025CW22-27-N1,CH-2025CW22-27,1,"They also have a overseas business department, but the leader is busy.",,,30
+CH-2025CW22-27-N2,CH-2025CW22-27,2,The replacement sensor has not arrived yet.,,,31
+CH-2025CW22-27-N3,CH-2025CW22-27,3,Arrange visit in CW 23.,green,,32
+CH-2025CW22-27-N4,CH-2025CW22-27,4,Huilin offered 40% lower price. Customer ask for discount.,,,33
+CH-2025CW22-28-N1,CH-2025CW22-28,1,Ms.Zhang is purchasing manager. She was introduced us to the overseas business team.,,,35
+CH-2025CW22-28-N2,CH-2025CW22-28,2,"Their business is better than last year, many update requirement project this year.",,,36
+CH-2025CW22-28-N3,CH-2025CW22-28,3,They used Weiss table for testing equipment. Mostly size is about 200-300mm.,,,37
+CH-2025CW22-28-N4,CH-2025CW22-28,4,We had cooperation with another department of the group before.,,,38
+CH-2025CW22-29-N1,CH-2025CW22-29,1,Technical problem with ER.10: position drift after 3 months. Need support from HQ.,,,41
+CH-2025CW22-29-N2,CH-2025CW22-29,2,Will send quotation for 13 pc ER.10 this week.,green,Follow up in CW 25.,42
+CH-2025CW22-29-N3,CH-2025CW22-29,3,"Select 13 pcs ER.10 for the new project, will get order in November.",,,43
+CH-2025CW23-31-N1,CH-2025CW23-31,1,"Their business is decreased than last year, many update requirement project this year.",,,10
+CH-2025CW23-31-N2,CH-2025CW23-31,2,They plan to buy 20 pcs AT1600 per year.,,,11
+CH-2025CW23-31-N3,CH-2025CW23-31,3,Used 20 - 25 pcs Gamma table per year.,,,12
+CH-2025CW23-32-N1,CH-2025CW23-32,1,Will send quotation for 12 pc ER.10 this week.,green,,14
+CH-2025CW23-32-N2,CH-2025CW23-32,2,They plan to buy 12 pcs ER.10 per year.,,,15
+CH-2025CW23-33-N1,CH-2025CW23-33,1,"They also have a overseas business department, but the leader is busy.",,,17
+CH-2025CW23-33-N2,CH-2025CW23-33,2,"Customer asked for quotation of 10 pc VR.NC 18, delivery time is important.",,,18
+CH-2025CW23-33-N3,CH-2025CW23-33,3,"Waiting for PO, customer say budget approval in October.",,Contact with Huaxin.,19
+CH-2025CW23-33-N4,CH-2025CW23-33,4,Technical problem with VR.NC 18: encoder error. Need support from HQ.,,,20
+CH-2025CW23-34-N1,CH-2025CW23-34,1,"Waiting for PO, customer say budget approval in February.",yellow,,21
+CH-2025CW23-34-N2,CH-2025CW23-34,2,"No business in 3C area, mostly in packaging.",,,22
+CH-2025CW23-34-N3,CH-2025CW23-34,3,We had cooperation with another department of the group before.,,,23
+CH-2025CW23-35-N1,CH-2025CW23-35,1,"Their business is better than last year, many update requirement project this year.",,,24
+CH-2025CW23-35-N2,CH-2025CW23-35,2,Arrange visit in CW 25.,,ChenHao will follow up this customer.,25
+CH-2025CW24-37-N1,CH-2025CW24-37,1,Project for coil winding line is waiting for approval. Need 7 pc ER.10.,,,10
+CH-2025CW24-37-N2,CH-2025CW24-37,2,"The price of Weiss prodcut is almost 20% cheaper than our table, it is look like difficult to change.",,,11
+CH-2025CW24-38-N1,CH-2025CW24-38,1,"Customer provide the parameter, wait for solution and quatation from HQ.",yellow,,14
+CH-2025CW24-38-N2,CH-2025CW24-38,2,"Their business is decreased than last year, many update requirement project this year.",,,15
+CH-2025CW24-39-N1,CH-2025CW24-39,1,"Huaxin is supplier in packaging and printing area, mostly packaging machine.",,,17
+CH-2025CW24-39-N2,CH-2025CW24-39,2,Their customer is tier 1 and have good business in oversea.,,,18
+CH-2025CW24-40-N1,CH-2025CW24-40,1,Technical problem with ER11 D2: encoder error. Need support from HQ.,,,20
+CH-2025CW24-40-N2,CH-2025CW24-40,2,They plan to buy 16 pcs ER11 D2 per year.,,,21
+CH-2025CW24-41-N1,CH-2025CW24-41,1,"The price of Huilin product is almost 50% cheaper than our table, it is look like difficult to change.",,,23
+CH-2025CW24-41-N2,CH-2025CW24-41,2,Guoteng belong to Dongfang group.,,,24
+CH-2025CW24-41-N3,CH-2025CW24-41,3,Wait for drawing confirmation from customer.,yellow,Follow up in CW 26.,25
+CH-2025CW24-42-N1,CH-2025CW24-42,1,Used 19 - 24 pcs Gamma table per year.,,,28
+CH-2025CW24-42-N2,CH-2025CW24-42,2,"They also have a R&D department, but the leader is busy.",,,29
+CH-2025CW24-42-N3,CH-2025CW24-42,3,The replacement gearbox has not arrived yet.,,,30
+CH-2025CW24-42-N4,CH-2025CW24-42,4,Project for assembly line is delayed because of budget. Need 19 pc ER15 D4.,,,31
+CH-2025CW24-43-N1,CH-2025CW24-43,1,Ms.Wu is purchasing manager. She was introduced us to the R&D team.,,,34
+CH-2025CW24-43-N2,CH-2025CW24-43,2,"Waiting for PO, customer say budget approval in August.",yellow,,35
+CH-2025CW24-43-N3,CH-2025CW24-43,3,"They also have a overseas business department, but the leader is busy.",,,36
+CH-2025CW24-43-N4,CH-2025CW24-43,4,"No business in medical area, mostly in battery.",,,37
+CH-2025CW25-45-N1,CH-2025CW25-45,1,"They also have a R&D department, but the leader is busy.",,,10
+CH-2025CW25-45-N2,CH-2025CW25-45,2,Mr.Wu is overseas business development manager. He was introduced us to the service team.,,,11
+CH-2025CW25-46-N1,CH-2025CW25-46,1,They will inquire us if they have new project.,,,13
+CH-2025CW25-46-N2,CH-2025CW25-46,2,"They also have a overseas business department, but the leader is busy.",,,14
+CH-2025CW25-47-N1,CH-2025CW25-47,1,"The price of Taiwan DEX product is almost 15% cheaper than our table, it is look like difficult to change.",,,16
+CH-2025CW25-47-N2,CH-2025CW25-47,2,Arrange appointment with Ms.Vogel in April.,green,,17
+CH-2025CW25-48-N1,CH-2025CW25-48,1,There are approximately dozens of equipment manufacturers doing the assembly machine. Most of them used Sandex table.,,,19
+CH-2025CW25-48-N2,CH-2025CW25-48,2,Promote Fibro VR.NC 18 table and start contact with the customers. Will arrange visit in CW 27 and CW 28.,green,,20
+CH-2025CW26-50-N1,CH-2025CW26-50,1,"Their business is better than last year, many update requirement project this year.",,,10
+CH-2025CW26-51-N1,CH-2025CW26-51,1,Used 17 - 22 pcs Gamma table per year.,,,13
+CH-2025CW26-51-N2,CH-2025CW26-51,2,Arrange visit in CW 28.,green,Reply to customer in 3 days.,14
+CH-2025CW26-51-N3,CH-2025CW26-51,3,The replacement brake has not arrived yet.,,,15
+CH-2025CW26-52-N1,CH-2025CW26-52,1,Taiwan DEX offered 15% lower price. Customer ask for discount.,,,16
+CH-2025CW26-52-N2,CH-2025CW26-52,2,"They also have a service department, but the leader is busy.",,,17
+CH-2025CW26-52-N3,CH-2025CW26-52,3,Send comparison with Taiwan DEX to Ms.Wu.,green,,18
+CH-2025CW26-52-N4,CH-2025CW26-52,4,The replacement gearbox has not arrived yet.,,,19
+CH-2025CW26-53-N1,CH-2025CW26-53,1,"Their business is decreased than last year, many update requirement project this year.",,,22
+CH-2025CW26-53-N2,CH-2025CW26-53,2,Wait for drawing confirmation from customer.,yellow,,23
+CH-2025CW26-55-N1,CH-2025CW26-55,1,There are approximately dozens of equipment manufacturers doing the packaging machine. Most of them used Huilin table.,,,28
+CH-2025CW26-55-N2,CH-2025CW26-55,2,Promote Fibro ER11 D2 table and start contact with the customers. Will arrange visit in CW 28 and CW 29.,green,,29
+CH-2025CW27-56-N1,CH-2025CW27-56,1,"The price of Gamma product is almost 40% cheaper than our table, it is look like difficult to change.",,,10
+CH-2025CW27-56-N2,CH-2025CW27-56,2,We had cooperation with another department of the group before.,,,11
+CH-2025CW27-56-N3,CH-2025CW27-56,3,"No business in medical area, mostly in battery.",,,12
+CH-2025CW27-57-N1,CH-2025CW27-57,1,"Customer asked for quotation of 12 pc VR.NC 18, delivery time is important.",,,14
+CH-2025CW27-57-N2,CH-2025CW27-57,2,Promote Fibro VR.NC 18 table and start contact with the customers.,,,15
+CH-2025CW27-58-N1,CH-2025CW27-58,1,Technical problem with orange table: oil leakage at housing. Need support from HQ.,,,18
+CH-2025CW27-58-N2,CH-2025CW27-58,2,Project for laser cutting is running well. Need 5 pc orange table.,,,19
+CH-2025CW27-58-N3,CH-2025CW27-58,3,"The price of Huilin product is almost 20% cheaper than our table, it is look like difficult to change.",,,20
+CH-2025CW27-58-N4,CH-2025CW27-58,4,"Their business is better than last year, many update requirement project this year.",,,21
+CH-2025CW27-58-N5,CH-2025CW27-58,5,Will send quotation for 5 pc orange table this week.,,,22
+CH-2025CW27-59-N1,CH-2025CW27-59,1,Used 6 - 11 pcs Weiss table per year.,,,24
+CH-2025CW27-59-N2,CH-2025CW27-59,2,The replacement motor has not arrived yet.,,,25
+CH-2025CW28-61-N1,CH-2025CW28-61,1,Their customer is tier 1 and have good business in oversea.,,,10
+CH-2025CW28-61-N2,CH-2025CW28-61,2,"No business in 3C area, mostly in 3C.",,,11
+CH-2025CW28-61-N3,CH-2025CW28-61,3,Guoteng belong to Dongfang group.,,,12
+CH-2025CW28-61-N4,CH-2025CW28-61,4,Wait for drawing confirmation from custmer.,yellow,Reply to customer in 3 days.,13
+CH-2025CW28-62-N1,CH-2025CW28-62,1,Huilin offered 40% lower price. Customer ask for discount.,,,15
+CH-2025CW28-62-N2,CH-2025CW28-62,2,Project for inspection station is waiting for approval. Need 17 pc ER15 D4.,,,16
+CH-2025CW28-62-N3,CH-2025CW28-62,3,The replacement motor has not arrived yet.,,,17
+CH-2025CW28-62-N4,CH-2025CW28-62,4,Arrange visit in CW 29.,,Contact with Yuanchuang.,18
+CH-2025CW28-63-N1,CH-2025CW28-63,1,"Qiming is supplier in 3C electronics area, mostly fixture turning system.",,,21
+CH-2025CW28-64-N1,CH-2025CW28-64,1,"No business in 3C area, mostly in 3C.",,,24
+CH-2025CW28-64-N2,CH-2025CW28-64,2,We had cooperation with another department of the group before.,,,25
+CH-2025CW28-64-N3,CH-2025CW28-64,3,"Waiting for PO, customer say budget approval in November.",yellow,,26
+CH-2025CW28-65-N1,CH-2025CW28-65,1,Wait for drawing confirmation from custmer.,yellow,Reply to customer in 3 days.,28
+CH-2025CW28-65-N2,CH-2025CW28-65,2,"Customer asked for quotation of 4 pc orange table, delivery time is important.",,,29
+CH-2025CW28-65-N3,CH-2025CW28-65,3,They plan to buy 4 pcs orange table per year.,,,30
+CH-2025CW28-66-N1,CH-2025CW28-66,1,We had cooperation with another department of the group before.,,,32
+CH-2025CW28-66-N2,CH-2025CW28-66,2,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,Follow up in CW 30.,33
+CH-2025CW28-66-N3,CH-2025CW28-66,3,Their customer is tier 1 and have good business in oversea.,,,34
+CH-2025CW28-66-N4,CH-2025CW28-66,4,They will inquire us if they have new project.,,,35
+CH-2025CW29-67-N1,CH-2025CW29-67,1,Used 1 - 6 pcs local brand table per year.,,,10
+CH-2025CW29-67-N2,CH-2025CW29-67,2,Arrange visit in CW 31.,green,,11
+CH-2025CW29-67-N3,CH-2025CW29-67,3,Technical problem with orange table: noise at high speed. Need support from HQ.,,,12
+CH-2025CW29-68-N1,CH-2025CW29-68,1,Will send quatation for 20 pc VR.NC 18 this week.,,Appointment should be arrange in this month.,14
+CH-2025CW29-68-N2,CH-2025CW29-68,2,We had cooperation with another department of the group before.,,,15
+CH-2025CW29-69-N1,CH-2025CW29-69,1,Weiss offered 30% lower price. Customer ask for discount.,,,17
+CH-2025CW29-69-N2,CH-2025CW29-69,2,"Waiting for PO, customer say budget approval in May.",yellow,,18
+CH-2025CW29-70-N1,CH-2025CW29-70,1,Technical problem with VR.NC 18: encoder error. Need support from HQ.,,,20
+CH-2025CW29-70-N2,CH-2025CW29-70,2,"Their business is better than last year, many update requirement project this year.",,,21
+CH-2025CW29-70-N3,CH-2025CW29-70,3,Used 15 - 20 pcs Sandex table per year.,,,22
+CH-2025CW29-70-N4,CH-2025CW29-70,4,"Waiting for PO, customer say budget approval in July.",yellow,,23
+CH-2025CW29-71-N1,CH-2025CW29-71,1,Project for pick and place is waiting for approval. Need 18 pc ER15 D4.,,,26
+CH-2025CW29-71-N2,CH-2025CW29-71,2,Gamma offered 30% lower price. Customer ask for discount.,,,27
+CH-2025CW29-72-N1,CH-2025CW29-72,1,"Their business is decreased than last year, many update requirement project this year.",,,29
+CH-2025CW29-72-N2,CH-2025CW29-72,2,They will inquire us if they have new project.,,,30
+CH-2025CW29-72-N3,CH-2025CW29-72,3,Mr.Li is project manager. He was introduced us to the service team.,,,31
+CH-2025CW29-73-N1,CH-2025CW29-73,1,"Their business is decreased than last year, many update requirement project this year.",,,34
+CH-2025CW29-73-N2,CH-2025CW29-73,2,Used 10 - 15 pcs Huilin table per year.,,,35
+CH-2025CW29-73-N3,CH-2025CW29-73,3,Send comparison with Huilin to Ms.Luo.,green,,36
+CH-2025CW29-73-N4,CH-2025CW29-73,4,Technical problem with ER.11: encoder error. Need support from HQ.,,,37
+CH-2025CW30-75-N1,CH-2025CW30-75,1,"Customer asked for quatation of 4 pc VR.NC 18, delivery time is important.",,,10
+CH-2025CW30-76-N1,CH-2025CW30-76,1,We had cooperation with another department of the group before.,,,13
+CH-2025CW30-76-N2,CH-2025CW30-76,2,Mr.Zhu is design engineer. He was introduced us to the BIW business team.,,,14
+CH-2025CW30-76-N3,CH-2025CW30-76,3,They used Genlong table for inspection station. Mostly size is about 200-300mm.,,,15
+CH-2025CW30-76-N4,CH-2025CW30-76,4,Arrange appointment with Mr.Becker in March.,green,Reply to customer in 3 days.,16
+CH-2025CW30-77-N1,CH-2025CW30-77,1,We had cooperation with another department of the group before.,,,19
+CH-2025CW30-77-N2,CH-2025CW30-77,2,Promote Fibro VR.NC 18 table and start contact with the customers.,,Appointment should be arrange in this month.,20
+CH-2025CW30-78-N1,CH-2025CW30-78,1,"Jiahe is supplier in semiconductor area, mostly welding cell.",,,22
+CH-2025CW30-79-N1,CH-2025CW30-79,1,"Select 12 pcs ER15 D4 for the new project, will get order in July.",,,25
+CH-2025CW30-79-N2,CH-2025CW30-79,2,"Customer asked for quatation of 12 pc ER15 D4, delivery time is important.",,,26
+CH-2025CW30-79-N3,CH-2025CW30-79,3,"Customer provide the parameter, wait for solution and quatation from HQ.",yellow,,27
+CH-2025CW30-80-N1,CH-2025CW30-80,1,Send comparison with Gamma to Mr.Guo.,green,Contact with Xinda.,28
+CH-2025CW30-80-N2,CH-2025CW30-80,2,We had cooperation with another department of the group before.,,,29
+CH-2025CW30-80-N3,CH-2025CW30-80,3,"They also have a BIW business department, but the leader is busy.",,,30
+CH-2025CW30-81-N1,CH-2025CW30-81,1,The replacement encoder cable has not arrived yet.,,,32
+CH-2025CW31-82-N1,CH-2025CW31-82,1,"No business in medical area, mostly in packaging.",,,10
+CH-2025CW31-83-N1,CH-2025CW31-83,1,The replacement sensor has not arrived yet.,,,13
+CH-2025CW31-83-N2,CH-2025CW31-83,2,Genlong offered 20% lower price. Customer ask for discount.,,,14
+CH-2025CW31-83-N3,CH-2025CW31-83,3,Technical problem with ER11 D2: oil leakage at housing. Need support from HQ.,,,15
+CH-2025CW31-83-N4,CH-2025CW31-83,4,"The price of Genlong product is almost 20% cheaper than our table, it is look like difficult to change.",,,16
+CH-2025CW31-83-N5,CH-2025CW31-83,5,"Select 5 pcs ER11 D2 for the new project, will get order in September.",,,17
+CH-2025CW31-84-N1,CH-2025CW31-84,1,"Their business is better than last year, many update requirement project this year.",,,18
+CH-2025CW31-84-N2,CH-2025CW31-84,2,Send comparison with Huilin to Mr.Wu.,green,,19
+CH-2025CW31-84-N3,CH-2025CW31-84,3,They used Huilin table for pick and place. Mostly size is about 200-500mm.,,,20
+CH-2025CW31-84-N4,CH-2025CW31-84,4,They will inquire us if they have new project.,,,21
+CH-2025CW31-85-N1,CH-2025CW31-85,1,Send comparison with Gamma to Mr.Ma.,green,Reply to customer in 3 days.,24
+CH-2025CW31-85-N2,CH-2025CW31-85,2,"They also have a BIW business department, but the leader is busy.",,,25
+CH-2025CW31-85-N3,CH-2025CW31-85,3,"Mingxin is supplier in semiconductor area, mostly assembly line.",,,26
+CH-2025CW31-85-N4,CH-2025CW31-85,4,"Their business is better than last year, many update requirement project this year.",,,27
+CH-2025CW31-86-N1,CH-2025CW31-86,1,"No business in medical area, mostly in packaging.",,,29
+CH-2025CW31-86-N2,CH-2025CW31-86,2,Their customer is tier 1 and have good business in oversea.,,,30
+CH-2025CW31-86-N3,CH-2025CW31-86,3,"Customer provide the parameter, wait for solution and quotation from HQ.",yellow,,31
+CH-2025CW31-87-N1,CH-2025CW31-87,1,They plan to buy 1 pcs ER.11 per year.,,,34
+CH-2025CW31-87-N2,CH-2025CW31-87,2,Will send quotation for 1 pc ER.11 this week.,,,35
+CH-2025CW31-87-N3,CH-2025CW31-87,3,"The price of Gamma product is almost 40% cheaper than our table, it is look like difficult to change.",,,36
+CH-2025CW31-87-N4,CH-2025CW31-87,4,"Customer asked for quotation of 1 pc ER.11, delivery time is important.",,,37

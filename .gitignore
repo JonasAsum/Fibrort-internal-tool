@@ -1,0 +1,30 @@
+.DS_Store
+.venv/
+__pycache__/
+
+# Margince is the internal product, not part of this repo
+margince/
+
+# real customer data
+Email Data/
+exports/
+importer/mail/staging/
+importer/mail/staging.bak-*/
+importer/mail/staging_live/
+importer/webui/.uploads/
+
+# credentials and local config
+importer/.agent_passport.json
+importer/webui/.webui_config.json
+imap-testbed/credentials.txt
+imap-testbed/cert.pem
+imap-testbed/key.pem
+imap-testbed/server.log
+imap-testbed/sample/
+
+# editor/tool state
+.claude/
+.~lock.*
+importer/mail/checks_private.py
+importer/mail/owner.json
+importer/mail/HANDOFF.md

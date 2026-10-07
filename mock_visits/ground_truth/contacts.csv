@@ -1,0 +1,203 @@
+contact_id,customer_id,canonical_name,gender,role,phone_e164
+P001,C001,Zhao Lan,f,sales manager,+8613800006153
+P002,C001,Zhou Wei,m,general manager,+8618900001029
+P003,C001,Xu Fang,f,purchasing manager,+8613600005185
+P004,C002,Liu Mei,f,production manager,+8618900007630
+P005,C003,Chen Haifeng,m,production manager,+8615800000142
+P006,C003,Chen Bin,m,general manager,+8613600005235
+P007,C004,Yang Ming,m,general manager,+8618600001060
+P008,C005,Liu Lan,f,design engineer,+8613600001377
+P009,C005,Hu Bin,m,project manager,+8615800002177
+P010,C006,Liu Jianguo,m,technical director,+8613600004577
+P011,C007,Yang Mei,f,general manager,+8615800002512
+P012,C007,Ma Jing,f,technical director,+8615800008312
+P013,C008,Liu Wei,m,purchasing manager,+8618600003786
+P014,C009,Liu Tao,m,purchasing manager,+8615800009838
+P015,C010,Hu Hao,m,technical director,+8618900000103
+P016,C011,Xu Xin,f,project manager,+8613800003341
+P017,C011,Wang Mei,f,overseas business development manager,+8618600006091
+P018,C012,Zhu Lei,m,design engineer,+8618600009013
+P019,C012,Ma Yan,f,technical director,+8618600004641
+P020,C012,Wu Wei,m,overseas business development manager,+8618600006823
+P021,C013,Wang Tao,m,sales manager,+8615800006942
+P022,C013,Hu Jun,m,project manager,+8615800000243
+P023,C013,Zhang Ming,m,overseas business development manager,+8618900008265
+P024,C014,Ma Lei,m,production manager,+8615800004941
+P025,C015,Ma Qian,f,design engineer,+8618900002625
+P026,C015,Ma Shengxiang,m,general manager,+8618600002997
+P027,C015,Yang Yuting,f,sales manager,+8613600002016
+P028,C016,Liu Jun,m,sales manager,+8619100007466
+P029,C017,Gao Qiang,m,general manager,+8618600006376
+P030,C017,Yang Haifeng,m,purchasing manager,+8613800008019
+P031,C018,Ma Haifeng,m,design engineer,+8613800002104
+P032,C018,He Haifeng,m,purchasing manager,+8613800002134
+P033,C018,Zhang Mingxin,m,purchasing manager,+8619100006190
+P034,C019,Liu Shengxiang,m,general manager,+8615800008058
+P035,C020,Luo Xin,f,technical director,+8615800005305
+P036,C021,Guo Yuting,f,general manager,+8619100004306
+P037,C021,Li Xin,f,general manager,+8615800006610
+P038,C021,Yang Ming,m,technical director,+8613800008695
+P039,C022,Liu Shengxiang,m,technical director,+8619100006459
+P040,C022,Sun Ming,m,project manager,+8613600005420
+P041,C022,Luo Hao,m,purchasing manager,+8613600008455
+P042,C023,Li Bin,m,general manager,+8615800004767
+P043,C023,Sun Mingxin,m,purchasing manager,+8615800008001
+P044,C024,Sun Yuting,f,general manager,+8618600009561
+P045,C024,Luo Xin,f,production manager,+8615800002207
+P046,C025,Zhou Yan,f,sales manager,+8613600000188
+P047,C025,Gao Shengxiang,m,production manager,+8619100008480
+P048,C025,Li Na,f,purchasing manager,+8619100000413
+P049,C026,Wang Lei,m,general manager,+8615800006769
+P050,C027,He Hao,m,technical director,+8613800004919
+P051,C027,Guo Bin,m,purchasing manager,+8618600007154
+P052,C027,Hu Bin,m,project manager,+8615800001724
+P053,C028,Lin Qiang,m,sales manager,+8618900008572
+P054,C028,Zhang Mei,f,purchasing manager,+8615800004265
+P055,C029,Xu Bin,m,general manager,+8618600005383
+P056,C030,Wang Mingxin,m,purchasing manager,+8618600003831
+P057,C030,Ma Mei,f,design engineer,+8619100002810
+P058,C030,Yang Qian,f,overseas business development manager,+8615800000470
+P059,C031,Li Bin,m,design engineer,+8619100005954
+P060,C032,Ma Bin,m,design engineer,+8615800003370
+P061,C033,Wu Jianguo,m,production manager,+8613800002173
+P062,C034,Sun Wei,m,technical director,+8613600000793
+P063,C034,Luo Jun,m,production manager,+8613600000507
+P064,C035,Lin Na,f,general manager,+8618900001489
+P065,C036,Wu Mei,f,purchasing manager,+8613800005698
+P066,C036,Guo Hao,m,overseas business development manager,+8619100004269
+P067,C036,Zhao Mei,f,production manager,+8615800001800
+P068,C037,Lin Bin,m,design engineer,+8618900005351
+P069,C037,Zhang Ming,m,sales manager,+8618900000412
+P070,C037,Lin Lan,f,project manager,+8618600003826
+P071,C038,He Xin,f,project manager,+8618600009072
+P072,C039,Gao Qiang,m,general manager,+8615800005473
+P073,C039,He Tao,m,general manager,+8613600004939
+P074,C039,Chen Shengxiang,m,project manager,+8615800005350
+P075,C040,Zhou Mei,f,design engineer,+8615800001665
+P076,C041,Zhou Ming,m,general manager,+8613800001750
+P077,C041,Ma Wei,m,sales manager,+8618900003644
+P078,C042,Luo Fang,f,sales manager,+8613800003969
+P079,C042,Gao Shengxiang,m,sales manager,+8615800009564
+P080,C042,Liu Jianguo,m,production manager,+8618600005128
+P081,C043,Yang Bin,m,technical director,+8618600007909
+P082,C044,Yang Jianguo,m,overseas business development manager,+8613800006368
+P083,C044,Li Lei,m,technical director,+8619100003569
+P084,C044,Gao Lei,m,production manager,+8619100003358
+P085,C045,Hu Ming,m,general manager,+8618900003011
+P086,C045,Luo Lei,m,overseas business development manager,+8618900000927
+P087,C046,Sun Lan,f,technical director,+8613800003677
+P088,C047,Hu Ming,m,general manager,+8615800002118
+P089,C048,Zhao Mingxin,m,project manager,+8613600006771
+P090,C049,Sun Haifeng,m,general manager,+8613600006162
+P091,C050,Zhou Bin,m,overseas business development manager,+8615800004945
+P092,C051,Chen Jun,m,technical director,+8618600000934
+P093,C052,Gao Jun,m,purchasing manager,+8618900000188
+P094,C053,Chen Shengxiang,m,general manager,+8615800007404
+P095,C053,Lin Lan,f,project manager,+8619100009967
+P096,C054,He Mei,f,design engineer,+8618900007185
+P097,C054,Zhou Jing,f,sales manager,+8615800002282
+P098,C055,Guo Hao,m,general manager,+8618600002697
+P099,C055,Yang Wei,m,overseas business development manager,+8618600009217
+P100,C055,Sun Xiaoyu,f,sales manager,+8618600001235
+P101,C056,Xu Na,f,design engineer,+8619100007932
+P102,C057,Chen Lan,f,overseas business development manager,+8613800005999
+P103,C058,Zhu Xin,f,technical director,+8619100000863
+P104,C059,Zhou Mingxin,m,overseas business development manager,+8615800008064
+P105,C059,Wu Xin,f,project manager,+8619100001434
+P106,C059,Ma Yuting,f,purchasing manager,+8618600004921
+P107,C060,Li Jianguo,m,sales manager,+8619100002409
+P108,C060,Zhang Shengxiang,m,general manager,+8613800007501
+P109,C060,Li Yan,f,sales manager,+8613800000219
+P110,C061,Wu Qiang,m,project manager,+8618600000561
+P111,C061,Gao Jianguo,m,purchasing manager,+8618600009298
+P112,C062,Hu Ming,m,design engineer,+8613800006342
+P113,C062,Chen Jianguo,m,production manager,+8618600008991
+P114,C062,Wang Yan,f,sales manager,+8613800000152
+P115,C063,Chen Jing,f,production manager,+8613800004512
+P116,C064,Chen Jun,m,design engineer,+8613600009133
+P117,C065,Li Wei,m,purchasing manager,+8613800000241
+P118,C065,Zhang Shengxiang,m,sales manager,+8613600005119
+P119,C066,Sun Jun,m,production manager,+8618600002727
+P120,C066,Yang Jianguo,m,sales manager,+8618600006319
+P121,C066,Gao Qiang,m,overseas business development manager,+8613600004585
+P122,C067,Wu Shengxiang,m,sales manager,+8615800006171
+P123,C068,Wang Qiang,m,overseas business development manager,+8613600004391
+P124,C069,Gao Yan,f,project manager,+8613600008975
+P125,C070,Lin Mingxin,m,production manager,+8618600003283
+P126,C070,Wu Tao,m,purchasing manager,+8618900006479
+P127,C071,Ma Wei,m,production manager,+8619100001436
+P128,C071,Zhao Lei,m,sales manager,+8619100008536
+P129,C072,Huang Shengxiang,m,general manager,+8615800003150
+P130,C072,Sun Shengxiang,m,sales manager,+8619100002441
+P131,C073,Zhang Haifeng,m,project manager,+8613600009784
+P132,C074,Gao Mei,f,production manager,+8619100009292
+P133,C075,Chen Shengxiang,m,technical director,+8613800005551
+P134,C075,Li Wei,m,purchasing manager,+8619100006056
+P135,C075,Luo Lei,m,sales manager,+8613800001473
+P136,C076,He Jianguo,m,sales manager,+8615800007345
+P137,C077,Yang Tao,m,purchasing manager,+8613600005767
+P138,C078,Guo Yuting,f,purchasing manager,+8613800002372
+P139,C079,Liu Haifeng,m,production manager,+8613600006089
+P140,C079,Yang Ming,m,production manager,+8615800002345
+P141,C080,Li Tao,m,project manager,+8615800001274
+P142,C080,Chen Bin,m,production manager,+8613800006309
+P143,C080,Xu Haifeng,m,overseas business development manager,+8615800007823
+P144,C081,Hu Hao,m,project manager,+8618600002447
+P145,C082,Xu Fang,f,project manager,+8613600008044
+P146,C083,Li Yuting,f,general manager,+8619100007822
+P147,C084,Zhou Ming,m,general manager,+8615800001598
+P148,C085,Chen Fang,f,purchasing manager,+8618600008319
+P149,C086,Wu Mingxin,m,project manager,+8613600007131
+P150,C087,He Yan,f,general manager,+8618900002877
+P151,C088,Huang Hao,m,project manager,+8619100003148
+P152,C088,He Jing,f,sales manager,+8618900000907
+P153,C088,Guo Fang,f,design engineer,+8613800006709
+P154,C089,Sun Qian,f,purchasing manager,+8615800006081
+P155,C089,He Jun,m,production manager,+8619100001168
+P156,C090,Gao Ming,m,purchasing manager,+8613600001764
+P157,C090,Wang Mingxin,m,project manager,+8613800003990
+P158,C091,Zhou Fang,f,purchasing manager,+8613800001580
+P159,C092,Gao Qian,f,production manager,+8619100003905
+P160,C092,Yang Jing,f,purchasing manager,+8613600002016
+P161,C093,Ma Jing,f,project manager,+8619100009696
+P162,C093,Hu Qian,f,sales manager,+8615800000303
+P163,C094,He Shengxiang,m,purchasing manager,+8618600000851
+P164,C094,Xu Mei,f,sales manager,+8619100005253
+P165,C094,Xu Wei,m,project manager,+8618900005790
+P166,C095,Yang Mingxin,m,design engineer,+8613600007094
+P167,C096,Li Haifeng,m,purchasing manager,+8613800004354
+P168,C096,Lin Jianguo,m,purchasing manager,+8619100001646
+P169,C096,Li Mei,f,technical director,+8613800005003
+P170,C097,Zhou Mingxin,m,design engineer,+8618600009670
+P171,C098,Zhu Qiang,m,technical director,+8613600003987
+P172,C099,Gao Shengxiang,m,general manager,+8618900006334
+P173,C099,Wu Mingxin,m,production manager,+8618600005087
+P174,C100,Wang Ming,m,overseas business development manager,+8615800003908
+P175,C100,Wu Fang,f,general manager,+8613600000932
+P176,C100,Luo Jing,f,overseas business development manager,+8618600001016
+P177,C101,He Lei,m,general manager,+8618900002531
+P178,C101,Huang Hao,m,technical director,+8619100001557
+P179,C102,Zhu Yan,f,design engineer,+8613800006724
+P180,C102,Ma Haifeng,m,project manager,+8618600004576
+P181,C102,Hu Ming,m,production manager,+8613600005777
+P182,C103,Guo Wei,m,sales manager,+8618600004915
+P183,C103,Gao Ming,m,sales manager,+8619100003800
+P184,C103,Zhao Qian,f,overseas business development manager,+8615800006986
+P185,C104,Guo Qian,f,technical director,+8619100005118
+P186,C105,Li Jun,m,overseas business development manager,+8618600000170
+P187,C105,Zhu Lei,m,overseas business development manager,+8619100006568
+P188,C105,Huang Hao,m,sales manager,+8618600006580
+P189,C106,Zhang Bin,m,project manager,+8613600005211
+P190,C106,He Fang,f,project manager,+8613800004831
+P191,C107,Wu Mingxin,m,general manager,+8619100003081
+P192,C107,Luo Qian,f,design engineer,+8613600009336
+P193,C107,Zhu Wei,m,purchasing manager,+8613800005025
+P194,C108,Gao Lei,m,purchasing manager,+8618900000483
+P195,C108,Zhou Shengxiang,m,project manager,+8619100003252
+P196,C109,Liu Mingxin,m,purchasing manager,+8613800001247
+P197,C110,Wang Wei,m,overseas business development manager,+8615800003903
+P198,C110,Liu Fang,f,design engineer,+8613600003140
+P199,C110,Zhao Wei,m,sales manager,+8619100000719
+P200,C111,Gao Yan,f,project manager,+8613600000100
+P201,C112,Guo Qiang,m,design engineer,+8615800006386
+P202,C112,Wu Ming,m,sales manager,+8618900007936

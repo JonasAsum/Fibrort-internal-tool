@@ -1,0 +1,511 @@
+{
+  "info": {
+    "name": "Margince — visit-list import",
+    "description": "Manual walk-through of every endpoint visit_import/client.py calls: login, the 3-step CSV import (upload -> preview -> approve) for companies and contacts, then logging a visit as an activity. Run top to bottom inside one folder; each request stores the id the next one needs as a collection variable.\n\ncrm_session is Secure, so Postman's own cookie jar may refuse to resend it over plain http - the Login request's Tests script pulls it out of Set-Cookie by hand instead, and every other request sends it back as a literal Cookie header. Same workaround visit_import/client.py uses.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "email",
+      "value": "admin@demo.test"
+    },
+    {
+      "key": "password",
+      "value": "demo-password-123"
+    },
+    {
+      "key": "crm_session",
+      "value": ""
+    },
+    {
+      "key": "source_ref_company",
+      "value": ""
+    },
+    {
+      "key": "run_id_company",
+      "value": ""
+    },
+    {
+      "key": "company_id",
+      "value": "",
+      "description": "fill in from '2. List companies' response, or by hand"
+    },
+    {
+      "key": "contact_id",
+      "value": "",
+      "description": "fill in from '2. List a company's contacts' response, or by hand"
+    },
+    {
+      "key": "task_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const setCookie = pm.response.headers.get('Set-Cookie');",
+                  "if (!setCookie) { throw new Error('no Set-Cookie header on the login response'); }",
+                  "const m = setCookie.match(/crm_session=([^;]+)/);",
+                  "if (!m) { throw new Error('Set-Cookie carried no crm_session: ' + setCookie); }",
+                  "pm.collectionVariables.set('crm_session', m[1]);",
+                  "pm.test('login succeeded', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/auth/login"
+            }
+          }
+        },
+        {
+          "name": "Me (sanity check)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/me"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Companies and contacts (read)",
+      "item": [
+        {
+          "name": "List companies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/companies?limit=50"
+            }
+          }
+        },
+        {
+          "name": "List a company's contacts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/companies/{{company_id}}/contacts?limit=50"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Import companies (CSV)",
+      "item": [
+        {
+          "name": "Upload companies.csv",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('source_ref_company', body.source_ref);",
+                  "console.log('columns profiled:', body.columns);",
+                  "console.log('suggested_mapping:', body.suggested_mapping);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "object",
+                  "value": "company",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "select visit_import/sample_csv/companies.csv (or your own, same two columns: name,city)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/imports/sources"
+            }
+          }
+        },
+        {
+          "name": "Create import run (preview, writes nothing)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('run_id_company', pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"connector\": \"csv\",\n  \"object\": \"company\",\n  \"source_ref\": \"{{source_ref_company}}\",\n  \"mapping\": {\"name\": \"display_name\", \"city\": \"address.city\"},\n  \"source_key\": \"name\",\n  \"on_duplicate\": \"create\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/imports"
+            },
+            "description": "Upload only names the CRM does not already hold exactly (cli.py --dump-csv does not filter; the importer does). on_duplicate=create because the duplicate check is a fuzzy name ladder that calls most Chinese company names a duplicate of each other; near-misses still land in the duplicate review queue."
+          }
+        },
+        {
+          "name": "Read the report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/imports/{{run_id_company}}/report"
+            }
+          }
+        },
+        {
+          "name": "Approve (THIS WRITES THE COMPANIES)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/imports/{{run_id_company}}/approve"
+            }
+          }
+        },
+        {
+          "name": "Check run status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/imports/{{run_id_company}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Contacts (one per person, with phones and emails)",
+      "item": [
+        {
+          "name": "Add a company field (once): Potential",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/custom-fields"
+            },
+            "description": "The importer also creates 'Customer type' (picklist new/existing/dealer), 'Sales reps' (text), 'First visit' and 'Last visit' (date). The response's column_name (cf_potential) is the key a company PATCH uses.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"object\": \"company\",\n  \"label\": \"Potential\",\n  \"type\": \"picklist\",\n  \"options\": [\n    \"A\",\n    \"B\",\n    \"C\"\n  ],\n  \"source\": \"import\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Set a company's visit-list fields",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/companies/{{company_id}}"
+            },
+            "description": "lifecycle is only set by the importer when the CRM still says 'unknown'.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cf_potential\": \"B\",\n  \"cf_customer_type\": \"existing\",\n  \"cf_sales_reps\": \"Liu Yang\",\n  \"cf_first_visit\": \"2025-04-02\",\n  \"cf_last_visit\": \"2025-06-18\",\n  \"lifecycle\": \"customer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/contacts"
+            },
+            "description": "Direct create rather than the contact CSV import: the CSV has no phone target and refuses two different people who share a name ('Mr.Guo' at two companies). Copy the response id into contact_id.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Yang Tao\",\n  \"source\": \"import\",\n  \"source_system\": \"visitlist\",\n  \"source_author_name\": \"Liu Yang\",\n  \"phones\": [\n    {\n      \"phone\": \"+8613600005767\",\n      \"phone_type\": \"mobile\",\n      \"is_primary\": true,\n      \"position\": 0\n    },\n    {\n      \"phone\": \"+862100009057\",\n      \"phone_type\": \"work\",\n      \"is_primary\": false,\n      \"position\": 1\n    }\n  ],\n  \"emails\": [\n    {\n      \"email\": \"tao.yang@guoteng.example.com\",\n      \"email_type\": \"work\",\n      \"is_primary\": true,\n      \"position\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Link contact to employer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/relationships"
+            },
+            "description": "No started_at: a visit proves they worked there by then, not when they started.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"employment\",\n  \"contact_id\": \"{{contact_id}}\",\n  \"company_id\": \"{{company_id}}\",\n  \"employment_status\": \"current\",\n  \"source\": \"import\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Visits, tasks and week plans",
+      "item": [
+        {
+          "name": "Log one visit (kind: meeting)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/activities"
+            },
+            "description": "source_system/source_id make this idempotent: the same pair again answers 200 with the existing activity. A meeting may not link a company (the contact's employer reaches it); a visit with no contact is posted as kind 'note' linked to the company. raw keeps the whole sheet row.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"meeting\",\n  \"subject\": \"Visit — Guoteng Packaging Machinery (Kunshan)\",\n  \"body\": \"Promote VR.NC product and orange table.\\nMet: Yang Tao (13600005767, office 021-00009057, tao.yang@guoteng.example.com)\\nLocation: Kunshan · Potential: B · Customer: new\\n\\nNext steps:\\n• [action] Send comparison with Genlong to Mr.Yang. — due Sat 05 Apr 2025, \\\"Reply to customer in 3 days.\\\"\\n\\nFrom Liu Yang's visit list, CW14 (2-Apr, time of day not recorded) — visit_list_Liu_Yang_2025.xlsx › CW14 › rows 10–13\",\n  \"occurred_at\": \"2025-04-02T09:00:00+08:00\",\n  \"meeting_status\": \"held\",\n  \"source\": \"import\",\n  \"source_system\": \"visitlist\",\n  \"source_id\": \"visit_list_Liu_Yang_2025.xlsx:CW14:10\",\n  \"source_author_name\": \"Liu Yang\",\n  \"links\": [\n    {\n      \"entity_type\": \"contact\",\n      \"entity_id\": \"{{contact_id}}\"\n    }\n  ],\n  \"raw\": {\n    \"visit_list_row\": {\n      \"date_raw\": \"2-Apr\",\n      \"customer_raw\": \"Guoteng Packaging Machinery\",\n      \"potential\": \"B\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Log one action line as a task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/activities"
+            },
+            "description": "Copy the response id into task_id to close it with the next request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"task\",\n  \"subject\": \"Send comparison with Genlong to Mr.Yang.\",\n  \"body\": \"From the visit to Guoteng Packaging Machinery on Wed 02 Apr 2025 (Liu Yang, CW14).\\nDeadline as written: \\\"Reply to customer in 3 days.\\\"\",\n  \"occurred_at\": \"2025-04-02T09:00:00+08:00\",\n  \"due_at\": \"2025-04-05T09:00:00+08:00\",\n  \"source\": \"import\",\n  \"source_system\": \"visitlist\",\n  \"source_id\": \"visit_list_Liu_Yang_2025.xlsx:CW14:10#K10\",\n  \"source_author_name\": \"Liu Yang\",\n  \"links\": [\n    {\n      \"entity_type\": \"contact\",\n      \"entity_id\": \"{{contact_id}}\"\n    },\n    {\n      \"entity_type\": \"company\",\n      \"entity_id\": \"{{company_id}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mark a historical task done",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/activities/{{task_id}}"
+            },
+            "description": "The importer closes tasks due before the newest week in the file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_done\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Log a week's key plan and summary (kind: note)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "crm_session={{crm_session}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/activities"
+            },
+            "description": "One note per sheet on the week's Monday, linked to every company the plan names.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"note\",\n  \"subject\": \"Week plan CW14 2025 — Liu Yang\",\n  \"body\": \"Key plan\\n• Wed 02 Apr 2025: Kunshan: Guoteng; Suzhou: Senlan Automation\\n\\nSummary\\n• 4 visits, 2 new customers, 0 with potential A.\",\n  \"occurred_at\": \"2025-03-31T08:00:00+08:00\",\n  \"source\": \"import\",\n  \"source_system\": \"visitlist\",\n  \"source_id\": \"visit_list_Liu_Yang_2025.xlsx:CW14:week\",\n  \"source_author_name\": \"Liu Yang\",\n  \"links\": [\n    {\n      \"entity_type\": \"company\",\n      \"entity_id\": \"{{company_id}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+customer_id,canonical_name,aliases,city,industry,parent_customer_id,owners
+C001,Senlan Automation,Senlan|Senlan Auto.|SENLAN|Senlan Co.,Suzhou,new energy battery,,Liu Yang
+C002,Tianyu Intelligent Equipment,Tianyu|Tianyu Inte.|TIANYU|Tianyu Co.,Ningbo,medical device,,Sun Mei
+C003,Hengrui Machinery,Hengrui|Hengrui Mach.|HENGRUI|Hengrui Co.,Shenzhen,laboratory equipment,,Zhao Lei
+C004,Tianyu Machinery,Tianyu|Tianyu Mach.|TIANYU|Tianyu Co.,Qingdao,motor and engine assembly,,Chen Hao|Liu Yang
+C005,Dongfang Robotics,Dongfang|Dongfang Robo.|DONGFANG|Dongfang Co.,Kunshan,medical device,,Liu Yang
+C006,Boyuan Automation,Boyuan|Boyuan Auto.|BOYUAN|Boyuan Co.,Jiaxing,motor and engine assembly,,Sun Mei
+C007,Leibo Intelligent Equipment,Leibo|Leibo Inte.|LEIBO|Leibo Co.,Dongguan,laboratory equipment,,Zhao Lei
+C008,Shengtai Intelligent Manufacturing,Shengtai|Shengtai Inte.|SHENGTAI|Shengtai Co.,Qingdao,automotive BIW,,Chen Hao
+C009,Haoran Packaging Machinery,Haoran|Haoran Pack.|HAORAN|Haoran Co.,Kunshan,medical device,,Liu Yang
+C010,Ruifeng Intelligent Equipment,Ruifeng|Ruifeng Inte.|RUIFENG|Ruifeng Co.,Jiaxing,3C electronics,,Sun Mei|Liu Yang
+C011,Fuhua Intelligent Equipment,Fuhua|Fuhua Inte.|FUHUA|Fuhua Co.,Guangzhou,new energy battery,,Zhao Lei
+C012,Guoteng Electronics,Guoteng|Guoteng Elec.|GUOTENG|Guoteng Co.,Chengdu,semiconductor,C005,Chen Hao
+C013,Zhongke Tech,Zhongke|Zhongke Tech.|ZHONGKE|Zhongke Co.,Suzhou,new energy battery,,Liu Yang
+C014,Senlan Packaging Machinery,Senlan|Senlan Pack.|SENLAN|Senlan Co.,Nanjing,automotive BIW,,Sun Mei
+C015,Hongda Packaging Machinery,Hongda|Hongda Pack.|HONGDA|Hongda Co.,Guangzhou,laboratory equipment,,Zhao Lei
+C016,Hengrui Intelligent Equipment,Hengrui|Hengrui Inte.|HENGRUI|Hengrui Co.,Qingdao,welding,C073,Chen Hao
+C017,Bangda Intelligent Equipment,Bangda|Bangda Inte.|BANGDA|Bangda Co.,Suzhou,3C electronics,,Liu Yang
+C018,Xingchen Robotics,Xingchen|Xingchen Robo.|XINGCHEN|Xingchen Co.,Jiaxing,new energy battery,,Sun Mei|Zhao Lei
+C019,Huaxin Precision,Huaxin|Huaxin Prec.|HUAXIN|Huaxin Co.,Guangzhou,semiconductor,,Zhao Lei
+C020,Jiahe Industrial Equipment,Jiahe|Jiahe Indu.|JIAHE|Jiahe Co.,Chongqing,3C electronics,,Chen Hao
+C021,Hengrui Electronics,Hengrui|Hengrui Elec.|HENGRUI|Hengrui Co.,Shanghai,machine tool,,Liu Yang
+C022,Tianyu Packaging Machinery,Tianyu|Tianyu Pack.|TIANYU|Tianyu Co.,Ningbo,welding,,Sun Mei
+C023,Jinhai Automation,Jinhai|Jinhai Auto.|JINHAI|Jinhai Co.,Foshan,packaging and printing,,Zhao Lei
+C024,Hongda Machinery,Hongda|Hongda Mach.|HONGDA|Hongda Co.,Chongqing,welding,C001,Chen Hao
+C025,Chuangyi Intelligent Equipment,Chuangyi|Chuangyi Inte.|CHUANGYI|Chuangyi Co.,Shanghai,new energy battery,,Liu Yang
+C026,Hongda Industrial Equipment,Hongda|Hongda Indu.|HONGDA|Hongda Co.,Jiaxing,laboratory equipment,,Sun Mei
+C027,Ruifeng Packaging Machinery,Ruifeng|Ruifeng Pack.|RUIFENG|Ruifeng Co.,Dongguan,machine tool,,Zhao Lei
+C028,Yongsheng Electronics,Yongsheng|Yongsheng Elec.|YONGSHENG|Yongsheng Co.,Chengdu,packaging and printing,,Chen Hao
+C029,Shengtai Industrial Equipment,Shengtai|Shengtai Indu.|SHENGTAI|Shengtai Co.,Kunshan,automotive BIW,,Liu Yang
+C030,Lanxi Intelligent Equipment,Lanxi|Lanxi Inte.|LANXI|Lanxi Co.,Nanjing,motor and engine assembly,,Sun Mei
+C031,Dongfang Industrial Equipment,Dongfang|Dongfang Indu.|DONGFANG|Dongfang Co.,Guangzhou,automotive BIW,,Zhao Lei
+C032,Mingxin Electronics,Mingxin|Mingxin Elec.|MINGXIN|Mingxin Co.,Wuhan,semiconductor,,Chen Hao
+C033,Kangtai Packaging Machinery,Kangtai|Kangtai Pack.|KANGTAI|Kangtai Co.,Shanghai,3C electronics,C110,Liu Yang
+C034,Tongli Industrial Equipment,Tongli|Tongli Indu.|TONGLI|Tongli Co.,Ningbo,3C electronics,,Sun Mei
+C035,Huaxin Automation,Huaxin|Huaxin Auto.|HUAXIN|Huaxin Co.,Guangzhou,welding,C068,Zhao Lei
+C036,Boyuan Intelligent Equipment,Boyuan|Boyuan Inte.|BOYUAN|Boyuan Co.,Wuhan,machine tool,,Chen Hao
+C037,Ruifeng Automation,Ruifeng|Ruifeng Auto.|RUIFENG|Ruifeng Co.,Changzhou,medical device,,Liu Yang
+C038,Zhongke Machinery,Zhongke|Zhongke Mach.|ZHONGKE|Zhongke Co.,Jiaxing,new energy battery,,Sun Mei
+C039,Mingda Tech,Mingda|Mingda Tech.|MINGDA|Mingda Co.,Dongguan,automotive BIW,,Zhao Lei|Sun Mei
+C040,Jiahe Tech,Jiahe|Jiahe Tech.|JIAHE|Jiahe Co.,Chengdu,new energy battery,,Chen Hao
+C041,Fuhua Tech,Fuhua|Fuhua Tech.|FUHUA|Fuhua Co.,Wuxi,automotive BIW,,Liu Yang
+C042,Yuanchuang Electronics,Yuanchuang|Yuanchuang Elec.|YUANCHUANG|Yuanchuang Co.,Shaoxing,semiconductor,,Sun Mei|Chen Hao
+C043,Yuxin Automation,Yuxin|Yuxin Auto.|YUXIN|Yuxin Co.,Guangzhou,welding,,Zhao Lei
+C044,Jiahe Intelligent Equipment,Jiahe|Jiahe Inte.|JIAHE|Jiahe Co.,Qingdao,semiconductor,,Chen Hao
+C045,Qiming Robotics,Qiming|Qiming Robo.|QIMING|Qiming Co.,Changzhou,laboratory equipment,,Liu Yang
+C046,Xingchen Machinery,Xingchen|Xingchen Mach.|XINGCHEN|Xingchen Co.,Shaoxing,automotive BIW,,Sun Mei
+C047,Chuangyi Industrial Equipment,Chuangyi|Chuangyi Indu.|CHUANGYI|Chuangyi Co.,Shenzhen,semiconductor,,Zhao Lei|Liu Yang
+C048,Ruifeng Intelligent Manufacturing,Ruifeng|Ruifeng Inte.|RUIFENG|Ruifeng Co.,Qingdao,automotive BIW,C104,Chen Hao
+C049,Chuangyi Machinery,Chuangyi|Chuangyi Mach.|CHUANGYI|Chuangyi Co.,Changzhou,laboratory equipment,,Liu Yang
+C050,Hengrui Industrial Equipment,Hengrui|Hengrui Indu.|HENGRUI|Hengrui Co.,Jiaxing,3C electronics,,Sun Mei|Chen Hao
+C051,Senlan Machinery,Senlan|Senlan Mach.|SENLAN|Senlan Co.,Dongguan,motor and engine assembly,,Zhao Lei
+C052,Hengrui Intelligent Manufacturing,Hengrui|Hengrui Inte.|HENGRUI|Hengrui Co.,Chongqing,packaging and printing,,Chen Hao
+C053,Xingchen Packaging Machinery,Xingchen|Xingchen Pack.|XINGCHEN|Xingchen Co.,Suzhou,medical device,,Liu Yang
+C054,Fuhua Machinery,Fuhua|Fuhua Mach.|FUHUA|Fuhua Co.,Shaoxing,new energy battery,C072,Sun Mei
+C055,Hanyu Precision,Hanyu|Hanyu Prec.|HANYU|Hanyu Co.,Shenzhen,automotive BIW,,Zhao Lei|Liu Yang
+C056,Huaxin Intelligent Equipment,Huaxin|Huaxin Inte.|HUAXIN|Huaxin Co.,Tianjin,motor and engine assembly,,Chen Hao
+C057,Hanyu Intelligent Equipment,Hanyu|Hanyu Inte.|HANYU|Hanyu Co.,Suzhou,machine tool,,Liu Yang
+C058,Xingchen Intelligent Manufacturing,Xingchen|Xingchen Inte.|XINGCHEN|Xingchen Co.,Nanjing,3C electronics,,Sun Mei
+C059,Hongda Automation,Hongda|Hongda Auto.|HONGDA|Hongda Co.,Guangzhou,semiconductor,,Zhao Lei
+C060,Dongfang Packaging Machinery,Dongfang|Dongfang Pack.|DONGFANG|Dongfang Co.,Qingdao,3C electronics,,Chen Hao
+C061,Qiming Electronics,Qiming|Qiming Elec.|QIMING|Qiming Co.,Suzhou,welding,,Liu Yang
+C062,Bangda Precision,Bangda|Bangda Prec.|BANGDA|Bangda Co.,Jiaxing,automotive BIW,,Sun Mei
+C063,Lixing Automation,Lixing|Lixing Auto.|LIXING|Lixing Co.,Dongguan,packaging and printing,,Zhao Lei
+C064,Tianyu Robotics,Tianyu|Tianyu Robo.|TIANYU|Tianyu Co.,Wuhan,semiconductor,,Chen Hao
+C065,Yuanchuang Tech,Yuanchuang|Yuanchuang Tech.|YUANCHUANG|Yuanchuang Co.,Shanghai,medical device,,Liu Yang
+C066,Leibo Tech,Leibo|Leibo Tech.|LEIBO|Leibo Co.,Hangzhou,packaging and printing,,Sun Mei
+C067,Mingxin Machinery,Mingxin|Mingxin Mach.|MINGXIN|Mingxin Co.,Foshan,semiconductor,,Zhao Lei
+C068,Leibo Precision,Leibo|Leibo Prec.|LEIBO|Leibo Co.,Tianjin,machine tool,,Chen Hao
+C069,Anda Machinery,Anda|Anda Mach.|ANDA|Anda Co.,Wuxi,new energy battery,,Liu Yang
+C070,Lixing Tech,Lixing|Lixing Tech.|LIXING|Lixing Co.,Hangzhou,medical device,,Sun Mei
+C071,Chuangyi Precision,Chuangyi|Chuangyi Prec.|CHUANGYI|Chuangyi Co.,Foshan,laboratory equipment,,Zhao Lei
+C072,Hongda Precision,Hongda|Hongda Prec.|HONGDA|Hongda Co.,Tianjin,motor and engine assembly,,Chen Hao
+C073,Hongda Tech,Hongda|Hongda Tech.|HONGDA|Hongda Co.,Kunshan,packaging and printing,,Liu Yang
+C074,Boyuan Tech,Boyuan|Boyuan Tech.|BOYUAN|Boyuan Co.,Nanjing,medical device,,Sun Mei
+C075,Weida Tech,Weida|Weida Tech.|WEIDA|Weida Co.,Guangzhou,semiconductor,,Zhao Lei
+C076,Zhongke Robotics,Zhongke|Zhongke Robo.|ZHONGKE|Zhongke Co.,Tianjin,3C electronics,,Chen Hao
+C077,Guoteng Packaging Machinery,Guoteng|Guoteng Pack.|GUOTENG|Guoteng Co.,Kunshan,laboratory equipment,,Liu Yang
+C078,Qiming Intelligent Equipment,Qiming|Qiming Inte.|QIMING|Qiming Co.,Nanjing,semiconductor,,Sun Mei
+C079,Yuxin Tech,Yuxin|Yuxin Tech.|YUXIN|Yuxin Co.,Guangzhou,laboratory equipment,C026,Zhao Lei
+C080,Huaxin Tech,Huaxin|Huaxin Tech.|HUAXIN|Huaxin Co.,Wuhan,packaging and printing,,Chen Hao|Liu Yang
+C081,Haoran Precision,Haoran|Haoran Prec.|HAORAN|Haoran Co.,Changzhou,automotive BIW,,Liu Yang
+C082,Lixing Packaging Machinery,Lixing|Lixing Pack.|LIXING|Lixing Co.,Jiaxing,welding,,Sun Mei
+C083,Mingda Precision,Mingda|Mingda Prec.|MINGDA|Mingda Co.,Dongguan,3C electronics,,Zhao Lei
+C084,Tianyu Automation,Tianyu|Tianyu Auto.|TIANYU|Tianyu Co.,Tianjin,semiconductor,C098,Chen Hao
+C085,Shengtai Tech,Shengtai|Shengtai Tech.|SHENGTAI|Shengtai Co.,Shanghai,new energy battery,,Liu Yang
+C086,Huaxin Industrial Equipment,Huaxin|Huaxin Indu.|HUAXIN|Huaxin Co.,Shaoxing,motor and engine assembly,,Sun Mei|Chen Hao
+C087,Ruifeng Electronics,Ruifeng|Ruifeng Elec.|RUIFENG|Ruifeng Co.,Zhuhai,motor and engine assembly,,Zhao Lei|Sun Mei
+C088,Fuhua Precision,Fuhua|Fuhua Prec.|FUHUA|Fuhua Co.,Wuhan,new energy battery,,Chen Hao
+C089,Qiming Tech,Qiming|Qiming Tech.|QIMING|Qiming Co.,Kunshan,3C electronics,,Liu Yang
+C090,Jiahe Machinery,Jiahe|Jiahe Mach.|JIAHE|Jiahe Co.,Hangzhou,welding,,Sun Mei
+C091,Xinda Intelligent Manufacturing,Xinda|Xinda Inte.|XINDA|Xinda Co.,Dongguan,machine tool,,Zhao Lei
+C092,Qiming Industrial Equipment,Qiming|Qiming Indu.|QIMING|Qiming Co.,Chengdu,3C electronics,,Chen Hao
+C093,Lixing Intelligent Equipment,Lixing|Lixing Inte.|LIXING|Lixing Co.,Wuxi,automotive BIW,,Liu Yang
+C094,Yuxin Electronics,Yuxin|Yuxin Elec.|YUXIN|Yuxin Co.,Nanjing,machine tool,,Sun Mei
+C095,Kaiwei Tech,Kaiwei|Kaiwei Tech.|KAIWEI|Kaiwei Co.,Foshan,laboratory equipment,,Zhao Lei
+C096,Senlan Intelligent Manufacturing,Senlan|Senlan Inte.|SENLAN|Senlan Co.,Chongqing,packaging and printing,,Chen Hao
+C097,Jiahe Robotics,Jiahe|Jiahe Robo.|JIAHE|Jiahe Co.,Shanghai,machine tool,,Liu Yang|Zhao Lei
+C098,Anda Intelligent Manufacturing,Anda|Anda Inte.|ANDA|Anda Co.,Nanjing,packaging and printing,,Sun Mei
+C099,Yongsheng Automation,Yongsheng|Yongsheng Auto.|YONGSHENG|Yongsheng Co.,Foshan,automotive BIW,,Zhao Lei
+C100,Leibo Electronics,Leibo|Leibo Elec.|LEIBO|Leibo Co.,Wuhan,motor and engine assembly,,Chen Hao|Sun Mei
+C101,Weida Robotics,Weida|Weida Robo.|WEIDA|Weida Co.,Suzhou,motor and engine assembly,,Liu Yang
+C102,Kangtai Industrial Equipment,Kangtai|Kangtai Indu.|KANGTAI|Kangtai Co.,Shaoxing,motor and engine assembly,,Sun Mei
+C103,Xingchen Tech,Xingchen|Xingchen Tech.|XINGCHEN|Xingchen Co.,Shenzhen,welding,,Zhao Lei
+C104,Chuangyi Intelligent Manufacturing,Chuangyi|Chuangyi Inte.|CHUANGYI|Chuangyi Co.,Qingdao,new energy battery,,Chen Hao
+C105,Ruifeng Robotics,Ruifeng|Ruifeng Robo.|RUIFENG|Ruifeng Co.,Kunshan,medical device,,Liu Yang
+C106,Xinda Intelligent Equipment,Xinda|Xinda Inte.|XINDA|Xinda Co.,Jiaxing,automotive BIW,,Sun Mei
+C107,Lixing Robotics,Lixing|Lixing Robo.|LIXING|Lixing Co.,Shenzhen,machine tool,,Zhao Lei
+C108,Yuanchuang Robotics,Yuanchuang|Yuanchuang Robo.|YUANCHUANG|Yuanchuang Co.,Chongqing,motor and engine assembly,,Chen Hao
+C109,Mingxin Intelligent Equipment,Mingxin|Mingxin Inte.|MINGXIN|Mingxin Co.,Wuxi,semiconductor,,Liu Yang
+C110,Yongsheng Packaging Machinery,Yongsheng|Yongsheng Pack.|YONGSHENG|Yongsheng Co.,Hangzhou,semiconductor,,Sun Mei
+C111,Haoran Robotics,Haoran|Haoran Robo.|HAORAN|Haoran Co.,Foshan,3C electronics,,Zhao Lei
+C112,Xinda Precision,Xinda|Xinda Prec.|XINDA|Xinda Co.,Tianjin,automotive BIW,,Chen Hao|Sun Mei
