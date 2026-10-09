@@ -138,9 +138,19 @@ def contact_phones(contact: Contact) -> list[dict]:
     return phones
 
 
+_EMAIL = re.compile(r"[\w.+'-]+@[\w-]+(?:\.[\w-]+)+")
+
+
 def contact_emails(contact: Contact) -> list[dict]:
+    """Every address the cells hold (a cell can carry two, or text around one); text
+    that holds no address stays in the visit's raw row only."""
+    found = []
+    for cell in contact.emails:
+        for e in _EMAIL.findall(cell or ""):
+            if e.lower() not in (f.lower() for f in found):
+                found.append(e)
     return [{"email": e, "email_type": "work", "is_primary": i == 0, "position": i}
-            for i, e in enumerate(contact.emails)]
+            for i, e in enumerate(found)]
 
 
 def task_notes(visit: Visit) -> list[Note]:
@@ -369,18 +379,21 @@ class _Run:
                 self.contact_ids[key] = existing_id
                 self.report.contacts_updated += self.add_reachability(existing_id, contact)
             else:
-                self.contact_ids[key] = self.create_contact(contact, company_id)
+                self.contact_ids[key], created = self.create_contact(contact, company_id)
                 by_company[company_id][contact.full_name.strip().lower()] = self.contact_ids[key]
-                self.report.contacts_created += 1
+                self.report.contacts_created += created
+                self.report.contacts_updated += not created  # an existing person, found by email
             self.emit("contacts_progress", done=i + 1, total=len(self.result.contacts))
 
-    def create_contact(self, contact: Contact, company_id: str) -> str:
+    def create_contact(self, contact: Contact, company_id: str) -> tuple[str, bool]:
+        """(contact id, whether a new record was made)."""
         body = {"full_name": contact.full_name, "source": "import", "source_system": self.opts.source_system,
                 "phones": contact_phones(contact), "emails": contact_emails(contact)}
         if contact.owners:
             body["source_author_name"] = contact.owners[0]
             if seat := self.seat_for(contact.owners[0]):
                 body["owner_id"] = seat
+        created = True
         try:
             contact_id = self.client.create_contact(body)["id"]
         except ApiError as exc:
@@ -389,13 +402,13 @@ class _Run:
             existing = _existing_id(exc, "duplicate_email")
             if not existing:
                 raise
-            contact_id = existing
+            contact_id, created = existing, False
         try:
             self.client.link_employment(contact_id, company_id)
         except ApiError as exc:
             if exc.response.status_code != 409:  # already employed there: nothing to add
                 raise
-        return contact_id
+        return contact_id, created
 
     def add_reachability(self, contact_id: str, contact: Contact) -> int:
         """Adds the numbers and addresses the sheet knows and the record does
