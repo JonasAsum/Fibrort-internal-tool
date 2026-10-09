@@ -379,7 +379,9 @@ def _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event, participa
     details = field("details")
     wv_raw = sheet.value(head, cols["wv"]) if "wv" in cols else None
     date_cell = _raw(sheet, head, cols["date"]) if "date" in cols else None
-    date_iso, _ = parse_date(date_cell, None, ctx.year, lookup=sheet.value)
+    date_iso, date_flag = parse_date(date_cell, None, ctx.year, lookup=sheet.value)
+    if date_flag in ("ambiguous", "range"):
+        review.append(ctx.review(sheet.name, head, "date", _text(date_cell), f"{date_flag}_date"))
     if date_iso is None:
         date_iso = _sheet_md(sheet.name, ctx.year)
     visit_day = date.fromisoformat(date_iso) if date_iso else date(ctx.year, 1, 1)

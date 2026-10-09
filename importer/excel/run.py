@@ -81,7 +81,17 @@ def _unique(paths, skipped):
         keep.append(members[0])
         for dup in members[1:]:
             skipped.append({"file": dup, "error": f"identical to {os.path.basename(members[0])}"})
-    return keep
+    # The file name is part of every record's source id; two different files with one name
+    # would overwrite each other's visits, so the second waits until it is renamed.
+    seen, unique = set(), []
+    for p in sorted(keep, key=lambda p: ("Weekly reports" not in p, p)):
+        name = os.path.basename(p)
+        if name in seen:
+            skipped.append({"file": p, "error": f"same file name as another file with different content: rename it to import"})
+            continue
+        seen.add(name)
+        unique.append(p)
+    return unique
 
 
 def _attach(items, reads):
