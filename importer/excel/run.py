@@ -17,8 +17,11 @@ from .sheet import load
 
 IMPORTER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILE_CW = re.compile(r"CW\s*(\d{1,2})", re.I)
-AUTO_OK = {"due_decimal"}  # review reasons that do not keep a visit out of the auto-accepted set
+AUTO_OK = {"due_decimal", "company_maybe_new"}  # review reasons that do not keep a visit out of the auto-accepted set
 COMPANY_OK = 0.9
+# Below this best-candidate score a customer is imported as a new company and only listed
+# for a merge check: a duplicate is one "Merge company" click, a wrong merge is silent.
+MAYBE_SAME = 0.85
 
 
 @dataclass
@@ -115,8 +118,10 @@ def _company_items(kept, master=None):
         r.visit.extra["company_match"] = {"code": m.code, "cn": m.cn, "en": m.en,
                                           "score": m.score, "method": m.method}
         if m.score < COMPANY_OK:
+            top = max((c[-1] for c in (m.candidates or [])), default=0)
+            reason = "company" if m.method == "ambiguous" or top >= MAYBE_SAME else "company_maybe_new"
             out.append((ReviewItem(r.layout, r.visit.workbook, r.visit.sheet, r.visit.excel_row_start,
-                                   "customer", name, "company", [list(c) for c in (m.candidates or [])]),
+                                   "customer", name, reason, [list(c) for c in (m.candidates or [])]),
                         r.visit.visit_key))
     return out
 
@@ -218,7 +223,7 @@ def summarize(result: RunResult) -> dict:
         if s.error:
             f["errors"].append(os.path.basename(s.path))
     for s in result.skipped_files:
-        f = fam("unreadable")
+        f = fam("duplicate" if s["error"].startswith("identical to") else "unreadable")
         f["skipped_files"] += 1
         f["errors"].append(os.path.basename(s["file"]))
     for v in result.parsed.visits:

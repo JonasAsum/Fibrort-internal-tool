@@ -141,32 +141,42 @@ class LucasLayout(TmpCase):
 
 
 class DetailLayout(TmpCase):
-    def test_one_meeting_per_sheet(self):
+    def test_one_visit_per_item_row(self):
         cells = {
             "B2": "Template for Customer Visits", "B3": "Customer name:", "D3": "Test Expo Hall",
-            "B5": "Participants", "D5": "Person One", "F5": "director",
-            "D6": "Person Two", "F6": "manager",
+            "B5": "Participants", "D5": "Person One", "F5": "director of Test Co",
+            "D6": "Person Two", "F6": "manager Other Machines Co., Ltd",
             "B11": "ID", "C11": "Date", "D11": "Typ\n(E/I/A)", "E11": "from\n(Person)",
             "F11": "General topic", "G11": "Details", "H11": "WV", "I11": "Wer", "J11": "Status",
-            "C12": "2026.9.15", "D12": "A", "E12": "Jason Yi", "F12": "visit to Test Co",
-            "G12": "Line A", "G13": "Line B continues",
+            "C12": "2026.9.15", "D12": "A", "E12": "Jason Yi", "F12": "visit to Test Co and demo",
+            "G12": "Line A", "G13": "Line B continues", "J12": "follow up", "L13": "extra note",
             "C14": "2026.9.16", "F14": "second topic", "G14": "Detail two",
             "H14": datetime(2026, 9, 30), "I14": "Jason Yi",
+            "C15": "2026.9.17", "F15": "拜访 Other Machines Co., Ltd", "G15": "Detail three", "I15": "Jason Yi",
         }
         path = write_book(self.path(DETAIL_NAME), {"Tabelle1": {"cells": cells}})
         ((layout, visits, week, review),) = [read_sheet(s, path) for s in load(path)]
         self.assertEqual(layout, "detail")
         self.assertIsNone(week)
-        (visit,) = visits
-        self.assertEqual(visit.customer_raw, "Test Expo Hall")
-        self.assertEqual(visit.date_iso, "2026-09-15")
-        self.assertEqual(visit.purpose, "visit to Test Co; second topic")
-        self.assertEqual((visit.excel_row_start, visit.excel_row_end), (12, 14))
-        self.assertEqual(visit.extra["participants"], [
-            {"name": "Person One", "role": "director"}, {"name": "Person Two", "role": "manager"}])
-        self.assertEqual(visit.notes[0].text, "Line A\nLine B continues")
-        green = [n for n in visit.notes if n.highlight == "green"]
-        self.assertEqual([(n.deadline, n.excel_row) for n in green], [("2026-09-30", 14)])
+        first, second, third = visits
+        self.assertEqual((first.customer_raw, first.contact_raw, first.city), ("Test Co", "Person One", ""))
+        self.assertEqual(first.extra["event"], "Test Expo Hall")
+        self.assertEqual(first.date_iso, "2026-09-15")
+        self.assertEqual(first.owner, "Jason Yi")
+        self.assertEqual(first.purpose, "visit to Test Co and demo")
+        self.assertEqual((first.excel_row_start, first.excel_row_end), (12, 13))
+        self.assertEqual(first.extra["status_text"], "follow up")
+        self.assertEqual(first.extra["extra_notes"], "extra note")
+        self.assertEqual(first.extra["participants"][1],
+                         {"name": "Person Two", "role": "manager Other Machines Co., Ltd",
+                          "company": "Other Machines Co., Ltd"})
+        self.assertEqual(first.notes[0].text, "Line A\nLine B continues")
+        self.assertEqual(second.customer_raw, "Test Expo Hall")  # no company in the topic: the sheet's cell
+        self.assertEqual(second.contact_raw, "")
+        self.assertEqual([(n.deadline, n.excel_row) for n in second.notes if n.highlight == "green"],
+                         [("2026-09-30", 14)])
+        self.assertEqual((third.customer_raw, third.contact_raw, third.date_iso),
+                         ("Other Machines Co., Ltd", "Person Two", "2026-09-17"))
         self.assertIn("participants", {r.reason for r in review})
 
 

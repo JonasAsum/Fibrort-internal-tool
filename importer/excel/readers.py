@@ -29,7 +29,7 @@ FILE_CW = re.compile(r"CW\s*(\d{1,2})", re.I)
 YEAR_IN_NAME = re.compile(r"(20\d{2})")
 SHEET_MD = re.compile(r"^\s*(\d{1,2})\.(\d{1,2})")
 PLACEHOLDER = re.compile(r"^\d+[.)]?$")  # "2." lines left in an empty next-step cell
-ITEM_FIELDS = (("id", "id"), ("date", "date"), ("from", "from"), ("topic", "general topic"),
+ITEM_FIELDS = (("id", "id"), ("typ", "typ"), ("date", "date"), ("from", "from"), ("topic", "general topic"),
                ("details", "details"), ("wv", "wv"), ("wer", "wer"), ("status", "status"))
 
 
@@ -290,9 +290,53 @@ def read_lucas(sheet, ctx, owner, found):
 
 
 ITEM_HEADER_MAX_ROW = 40
+EVENT = re.compile(r"\b(?:exhibition|expo|fair|show|trip)\b|展会|展览", re.I)
+VISIT_TOPIC = re.compile(r"(?:\bvisit(?:ed|ing)?\b(?:\s+to\b)?|\bmeeting\s+with\b|拜访)\s*(.+)", re.I)
+TOPIC_CUT = re.compile(r"\s+and\s|\s*\(|\s+to\s|\s+for\s|,(?!\s*(?:Co|Ltd))|[，；;]", re.I)
+ROLE_WORDS = {"manager", "director", "chairman", "engineer", "supervisor", "technical", "technology",
+              "technician", "production", "sales", "general", "chief", "senior", "deputy", "assistant",
+              "president", "head", "vice", "workshop", "quality", "purchasing", "procurement", "project",
+              "owner", "lead", "ceo", "cto", "coo"}
+COMPANY_TAIL = re.compile(r"\b(?:Co|Ltd|Technology|Machine Tools|GmbH|Inc|Corp|Group|Tools)\b", re.I)
+
+
+def _topic_company(topic: str) -> str:
+    """The company after "visit to", "visited", "meeting with" or "拜访" in a General topic."""
+    m = VISIT_TOPIC.search(topic or "")
+    if not m:
+        return ""
+    return " ".join(TOPIC_CUT.split(m.group(1), maxsplit=1)[0].split()).strip(" .,;，、")
+
+
+def _role_company(role: str) -> str:
+    """"director of Destaco" -> "Destaco"; "manager Nupa Technology Co., Ltd" -> "Nupa Technology Co., Ltd"."""
+    text = " ".join(role.split())
+    parts = re.split(r"\s+of\s+", text, flags=re.I)
+    if len(parts) > 1:
+        return parts[-1].strip(" .,;")
+    words = text.split()
+    while len(words) > 1 and words[0].lower().strip(".,") in ROLE_WORDS:
+        words.pop(0)
+    rest = " ".join(words).strip(" ,;")
+    return rest if COMPANY_TAIL.search(rest) else ""
+
+
+def _co_key(text: str) -> str:
+    return re.sub(r"[\W_]+", "", text.casefold())
+
+
+def _same_company(a: str, b: str) -> bool:
+    ka, kb = _co_key(a), _co_key(b)
+    return len(ka) >= 3 and len(kb) >= 3 and (ka in kb or kb in ka)
+
+
+def _person(raw) -> str:
+    """A rep from a "from"/"Wer" cell, which may read "Devin.Guo"."""
+    return normalize_owner(re.sub(r"[._\-]+", " ", _text(raw)))
 
 
 def _item_header(sheet: Sheet):
+    """(header row, {field: col}, last header col) for the item table."""
     for r in range(1, min(ITEM_HEADER_MAX_ROW, sheet.max_row) + 1):
         labels = {}
         for c in range(1, sheet.max_col + 1):
@@ -306,7 +350,7 @@ def _item_header(sheet: Sheet):
                     if t == prefix or t.startswith(prefix):
                         cols.setdefault(fld, c)
                         break
-            return r, cols
+            return r, cols, max(labels.values())
     return None
 
 
@@ -320,17 +364,81 @@ def _sheet_md(name: str, year: int) -> str | None:
         return None
 
 
+def _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event, participants, owner):
+    """One item: its head row plus the continuation rows below it."""
+    review = []
+    head = rows[0]
+
+    def field(fld, rs=rows):
+        col = cols.get(fld)
+        if col is None:
+            return ""
+        return "\n".join(t for t in (_text(sheet.value(r, col)) for r in rs) if t)
+
+    topic = field("topic", [head])
+    details = field("details")
+    wv_raw = sheet.value(head, cols["wv"]) if "wv" in cols else None
+    date_cell = _raw(sheet, head, cols["date"]) if "date" in cols else None
+    date_iso, _ = parse_date(date_cell, None, ctx.year, lookup=sheet.value)
+    if date_iso is None:
+        date_iso = _sheet_md(sheet.name, ctx.year)
+    visit_day = date.fromisoformat(date_iso) if date_iso else date(ctx.year, 1, 1)
+
+    customer = _topic_company(topic) or sheet_customer
+    contact = next((p["name"] for p in participants
+                    if p["company"] and customer and _same_company(p["company"], customer)), "")
+    owner = _person(field("from", [head])) or _person(field("wer", [head])) or owner
+    wer = field("wer", [head])
+
+    notes = []
+    if details:
+        notes.append(Note(text=details, highlight=None, deadline="", excel_row=head))
+    if _text(wv_raw):
+        iso, phrase, _ = parse_due(wv_raw, visit_day)
+        notes.append(Note(text=f"{topic or details} (Wer: {wer})", highlight="green",
+                          deadline=iso or phrase, excel_row=head))
+
+    extra_notes = [_text(sheet.value(r, cc)) for r in rows for cc in range(last + 1, sheet.max_col + 1)]
+    if not customer:
+        review.append(ctx.review(sheet.name, head, "customer", "", "no_customer"))
+    if date_iso is None:
+        review.append(ctx.review(sheet.name, head, "date", _text(date_cell), "no_date"))
+    if not owner:
+        review.append(ctx.review(sheet.name, head, "owner", "", "no_owner"))
+    if participants and not contact:
+        review.append(ctx.review(sheet.name, head, "participants",
+                                 "; ".join(p["name"] for p in participants), "participants"))
+
+    visit = Visit(
+        workbook=ctx.file, sheet=sheet.name, owner=owner,
+        year=int(date_iso[:4]) if date_iso else ctx.year,
+        cw=date.fromisoformat(date_iso).isocalendar()[1] if date_iso else 0,
+        excel_row_start=head, excel_row_end=rows[-1], date_raw=_text(date_cell), date_iso=date_iso,
+        city="", customer_raw=customer, potential="", customer_type_raw="", contact_raw=contact,
+        phone_raw="", office_phone="", email="", purpose=topic, notes=notes,
+        extra={
+            "kind": visit_kind(customer), "event": event,
+            "participants": [dict(p) for p in participants], "details": details,
+            "status_text": field("status"), "typ": field("typ", [head]),
+            "from_person": field("from", [head]), "wv": _text(wv_raw), "wer": wer,
+            "extra_notes": " | ".join(t for t in extra_notes if t),
+            "source_cells": {fld: f"{get_column_letter(col)}{head}" for fld, col in cols.items()},
+        },
+    )
+    return visit, review
+
+
 def read_detail(sheet, ctx, owner):
-    """One meeting per sheet: customer, participants, and an item table."""
+    """A trip report: one Visit per item row. The "Customer name:" cell can be an event;
+    the company comes from the item's topic, else from that cell."""
     review = []
     label = label_cell(sheet, "customer name")
     if label is None:
         return [], None, review
     lr, lc = label
     c = _first_col_right(sheet, lr, lc)
-    customer = _text(sheet.value(lr, c)) if c else ""
-    # Items come below; review items are pinned to the first item row so they fall inside the visit.
-    anchor = lr
+    sheet_customer = _text(sheet.value(lr, c)) if c else ""
+    event = sheet_customer if EVENT.search(sheet_customer) else ""
 
     participants = []
     p = label_cell(sheet, "participants")
@@ -341,70 +449,31 @@ def read_detail(sheet, ctx, owner):
             if name_c is None:
                 break
             role_c = _first_col_right(sheet, r, name_c)
-            participants.append({"name": _text(sheet.value(r, name_c)),
-                                 "role": _text(sheet.value(r, role_c)) if role_c else ""})
+            role = _text(sheet.value(r, role_c)) if role_c else ""
+            participants.append({"name": _text(sheet.value(r, name_c)), "role": role,
+                                 "company": _role_company(role)})
 
-    items = []
     head = _item_header(sheet)
-    if head:
-        hr, icols = head
-        for r in range(hr + 1, sheet.max_row + 1):
-            row = {fld: _text(sheet.value(r, col)) for fld, col in icols.items() if fld not in ("date", "wv")}
-            if "date" in icols:
-                row["date"] = _text(_raw(sheet, r, icols["date"]))
-            raw_wv = sheet.value(r, icols["wv"]) if "wv" in icols else None
-            if row.get("date") or row.get("id"):
-                items.append({**row, "row": r, "last": r, "wv": raw_wv,
-                              "date_raw": row.get("date", ""), "wv_raw_text": _text(raw_wv)})
-            elif items and row.get("details"):
-                items[-1]["details"] = "\n".join(x for x in (items[-1].get("details", ""), row["details"]) if x)
-                items[-1]["last"] = r
-
-    if not customer and not items:
+    if head is None:
         return [], None, review
-    if items:
-        anchor = items[0]["row"]
-    if participants:
-        review.append(ctx.review(sheet.name, anchor, "participants",
-                                 "; ".join(x["name"] for x in participants), "participants"))
+    hr, cols, last = head
+    items = []
+    for r in range(hr + 1, sheet.max_row + 1):
+        starts = bool(_text(sheet.value(r, cols["topic"]))) or (
+            "date" in cols and bool(_text(_raw(sheet, r, cols["date"]))))
+        if starts:
+            items.append([r])
+        elif items and any(_text(sheet.value(r, cc)) for cc in range(1, sheet.max_col + 1)):
+            items[-1].append(r)
 
-    first = next((it for it in items if it["date_raw"]), None)
-    date_raw = first["date_raw"] if first else ""
-    date_iso, _ = parse_date(first["date_raw"] if first else None, None, ctx.year)
-    if date_iso is None:
-        date_iso = _sheet_md(sheet.name, ctx.year)
-    visit_day = date.fromisoformat(date_iso) if date_iso else date(ctx.year, 1, 1)
-
-    notes = []
-    for it in items:
-        text = it.get("details") or it.get("topic", "")
-        if text:
-            notes.append(Note(text=text, highlight=None, deadline="", excel_row=it["row"]))
-        if _text(it["wv"]):
-            iso, phrase, _ = parse_due(it["wv"], visit_day)
-            notes.append(Note(text=f"{it.get('topic') or text} (Wer: {it.get('wer', '')})",
-                              highlight="green", deadline=iso or phrase, excel_row=it["row"]))
-    topics = list(dict.fromkeys(it["topic"] for it in items if it.get("topic")))
-
-    if date_iso is None:
-        review.append(ctx.review(sheet.name, anchor, "date", date_raw, "no_date"))
-    if not customer:
-        review.append(ctx.review(sheet.name, anchor, "customer", "", "no_customer"))
-    owner = owner or (normalize_owner(items[0].get("from")) if items else "")
-    if not owner:
-        review.append(ctx.review(sheet.name, anchor, "owner", "", "no_owner"))
-
-    visit = Visit(
-        workbook=ctx.file, sheet=sheet.name, owner=owner,
-        year=int(date_iso[:4]) if date_iso else ctx.year,
-        cw=date.fromisoformat(date_iso).isocalendar()[1] if date_iso else 0,
-        excel_row_start=items[0]["row"] if items else lr, excel_row_end=items[-1]["last"] if items else lr,
-        date_raw=date_raw, date_iso=date_iso, city="", customer_raw=customer, potential="",
-        customer_type_raw="", contact_raw="", phone_raw="", office_phone="", email="",
-        purpose="; ".join(topics), notes=notes,
-        extra={"participants": participants, "kind": visit_kind(customer)},
-    )
-    return [visit], None, review
+    visits = []
+    for rows in items:
+        visit, found = _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event,
+                                     participants, owner)
+        visits.append(visit)
+        review += found
+    _order_in_day(visits)
+    return visits, None, review
 
 
 def read_mock(sheet, ctx):

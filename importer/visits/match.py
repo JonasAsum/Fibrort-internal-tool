@@ -98,6 +98,10 @@ class _CompanyNamer:
             return customer_raw.strip().lower()
         if len(tokens) >= 2 and not any(abbreviated):
             return ":".join(tokens)
+        # Chinese is written without spaces: one token of four or more characters is a
+        # name written out in full, not a short form to resolve per city.
+        if len(tokens) == 1 and len(tokens[0]) >= 4 and re.search(r"[\u4e00-\u9fff]", tokens[0]):
+            return tokens[0]
         candidates = sorted(f for f in self._full_by_first.get(tokens[0], ())
                             if _could_be(tokens, abbreviated, f))
         pick, why = self._pick(candidates, city, contact_raw)

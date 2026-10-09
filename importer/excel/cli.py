@@ -4,7 +4,10 @@
   dry-run  - parse, then write excel/out/report.json (counts, per file) and
              excel/out/review.json (the items to check, with cell values; the
              folder is gitignored).
-  commit   - TODO: not wired yet. Will run visits.match and visits.pipeline.
+
+The package is CRM-agnostic: dry-run also writes excel/out/records.json, the
+plain visit and week records. Writing them into a CRM is an adapter's job;
+for Margince that is `python -m excel_margince` (preview / commit).
 
 Workbooks are only read. Usage (from importer/):
   .venv/bin/python -m excel.cli --mode dry-run "../mock_visits/excel/*.xlsx"
@@ -59,15 +62,26 @@ def _write(summary, result):
         json.dump(report, f, indent=2, ensure_ascii=False)
     with open(os.path.join(OUT_DIR, "review.json"), "w") as f:
         json.dump([dataclasses.asdict(item) for item in result.review], f, indent=2, ensure_ascii=False)
+    with open(os.path.join(OUT_DIR, "records.json"), "w") as f:
+        json.dump(records(result), f, indent=1, ensure_ascii=False, default=str)
+
+
+def records(result) -> dict:
+    """The plain records any CRM adapter consumes: every visit (with auto_accepted and
+    family) and every week plan."""
+    return {
+        "visits": [{**dataclasses.asdict(v), "visit_key": v.visit_key,
+                    "family": result.visit_family.get(v.visit_key, ""),
+                    "auto_accepted": v.visit_key in result.auto_accepted} for v in result.parsed.visits],
+        "weeks": [dataclasses.asdict(w) for w in result.parsed.weeks],
+    }
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("excel", nargs="+", help="workbook path(s) or glob(s)")
-    ap.add_argument("--mode", choices=["parse", "dry-run", "commit"], default="parse")
+    ap.add_argument("--mode", choices=["parse", "dry-run"], default="parse")
     args = ap.parse_args(argv)
-    if args.mode == "commit":
-        raise NotImplementedError("commit is a TODO: wire visits.match and visits.pipeline")
     result = read_paths(_expand(args.excel))
     summary = summarize(result)
     _print(summary, result)
