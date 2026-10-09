@@ -68,6 +68,9 @@ class Visit:
     # Position among this sheet's visits on the same date, from 0. The sheet
     # states the order a rep went in but never a clock time.
     order_in_day: int = 0
+    # Columns the mock layout does not have (WeChat, industry, competitor,
+    # status ...), kept so the activity's raw row still holds every cell.
+    extra: dict = field(default_factory=dict)
 
     @property
     def visit_key(self) -> str:

@@ -28,3 +28,8 @@ imap-testbed/sample/
 importer/mail/checks_private.py
 importer/mail/owner.json
 importer/mail/HANDOFF.md
+
+# real Excel inputs and the golden set drawn from them
+Excel Files from Sales Meetings/
+importer/excel/gold/
+importer/excel/out/
