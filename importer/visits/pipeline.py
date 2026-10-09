@@ -115,11 +115,25 @@ def normalize_phone(raw: str) -> str:
     return raw.strip()
 
 
+def _existing_id(exc: ApiError, code: str) -> str | None:
+    try:
+        body = exc.response.json()
+    except ValueError:
+        return None
+    if exc.response.status_code == 409 and body.get("code") == code:
+        return (body.get("details") or {}).get("existing_id")
+    return None
+
+
 def contact_phones(contact: Contact) -> list[dict]:
     phones = []
     for raw, kind in [(p, "mobile") for p in contact.phones] + [(p, "work") for p in contact.office_phones]:
         number = normalize_phone(raw)
-        if number and number not in (p["phone"] for p in phones):
+        # The CRM only takes numbers with a country prefix; one we cannot place (a
+        # local number without area code, a WeChat ID) stays in the visit's text and raw row.
+        if not number.startswith("+"):
+            continue
+        if number not in (p["phone"] for p in phones):
             phones.append({"phone": number, "phone_type": kind, "is_primary": not phones, "position": len(phones)})
     return phones
 
@@ -367,9 +381,21 @@ class _Run:
             body["source_author_name"] = contact.owners[0]
             if seat := self.seat_for(contact.owners[0]):
                 body["owner_id"] = seat
-        created = self.client.create_contact(body)
-        self.client.link_employment(created["id"], company_id)
-        return created["id"]
+        try:
+            contact_id = self.client.create_contact(body)["id"]
+        except ApiError as exc:
+            # The CRM already holds a person with this email (the same person written two
+            # ways, or met at two companies): that record is the contact, linked here too.
+            existing = _existing_id(exc, "duplicate_email")
+            if not existing:
+                raise
+            contact_id = existing
+        try:
+            self.client.link_employment(contact_id, company_id)
+        except ApiError as exc:
+            if exc.response.status_code != 409:  # already employed there: nothing to add
+                raise
+        return contact_id
 
     def add_reachability(self, contact_id: str, contact: Contact) -> int:
         """Adds the numbers and addresses the sheet knows and the record does
