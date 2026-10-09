@@ -45,5 +45,36 @@ class ReadPaths(TmpCase):
         self.assertFalse(stats["Template_CW21_Test Rep.xlsx"].stale_copy)
 
 
+class RunFixes(TmpCase):
+    def test_empty_customer_visit_is_kept_and_queued(self):
+        cells = dict(WEEKLY_HEADER)
+        cells.update({"E4": "Owner：", "F4": "Jason Zhao", "B9": "Jason Zhao",
+                      "D9": datetime(2026, 5, 18), "P9": "Call"})
+        path = write_book(self.path("Template for Weekly Sales Reporting 2026_CW21_Test Rep.xlsx"),
+                          {"CW21": {"cells": cells}})
+        result = read_paths([path])
+        (v,) = result.parsed.visits
+        self.assertEqual(v.customer_raw, "")
+        self.assertIn("no_customer", {r.reason for r in result.review})
+
+    def test_internal_rows_skip_company_review(self):
+        cells = dict(WEEKLY_HEADER)
+        cells.update({"E4": "Owner：", "F4": "Jason Zhao",
+                      "B9": "Jason Zhao", "D9": datetime(2026, 5, 18), "F9": "Public Holiday",
+                      "B10": "Jason Zhao", "D10": datetime(2026, 5, 19), "F10": "Team Building"})
+        path = write_book(self.path("Template for Weekly Sales Reporting 2026_CW21_Test Rep.xlsx"),
+                          {"CW21": {"cells": cells}})
+        result = read_paths([path])
+        self.assertEqual([v.extra["kind"] for v in result.parsed.visits], ["internal", "internal"])
+        self.assertNotIn("company", {r.reason for r in result.review})
+
+    def test_company_master_loaded_once_per_process(self):
+        from excel import run
+        run._master.cache_clear()
+        first = run._master(run.IMPORTER_DIR)
+        self.assertIs(run._master(run.IMPORTER_DIR), first)
+        self.assertEqual(run._master.cache_info().misses, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

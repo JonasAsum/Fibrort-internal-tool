@@ -84,5 +84,21 @@ class ParseDue(unittest.TestCase):
         self.assertEqual(parse_due("next week", date(2026, 5, 20)), (None, "next week", "phrase"))
 
 
+class OldYearAndPlaceholders(unittest.TestCase):
+    def test_year_1900_keeps_day_and_month_and_takes_ref_year(self):
+        # Excel stores "d/mmm" typed without a year as 1900.
+        self.assertEqual(parse_date(datetime(1900, 5, 18), REF), ("2026-05-18", ""))
+        self.assertEqual(parse_date(datetime(1900, 5, 18), None, year=2025), ("2025-05-18", ""))
+
+    def test_year_1900_due_date_takes_visit_year(self):
+        self.assertEqual(parse_due(datetime(1900, 5, 25), date(2026, 5, 20)), ("2026-05-25", "", ""))
+
+    def test_placeholders_are_empty(self):
+        for text in ("/", "-", "—", "not offer", "NONE", " n/a ", "无", "暂无", "没有"):
+            with self.subTest(text=text):
+                self.assertEqual(parse_date(text, REF), (None, "empty"))
+                self.assertEqual(parse_due(text, date(2026, 5, 20)), (None, "", ""))
+
+
 if __name__ == "__main__":
     unittest.main()

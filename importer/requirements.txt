@@ -5,3 +5,4 @@ pypdf>=4.0
 requests>=2.31
 xlrd>=2.0
 rapidfuzz>=3.0
+pypinyin>=0.50

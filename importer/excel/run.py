@@ -3,8 +3,8 @@ once; when several files carry the same visit (owner, date, customer) the copy i
 the newest file (higher CW in the name, then mtime) wins. A bad file or sheet is
 recorded and the run goes on. Company matching runs only when excel/companies.py
 exists."""
+import functools
 import hashlib
-import importlib.util
 import os
 import re
 from collections import Counter, defaultdict
@@ -15,6 +15,7 @@ from visits.reader import Parsed, Visit
 from .readers import ReviewItem, read_sheet
 from .sheet import load
 
+IMPORTER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILE_CW = re.compile(r"CW\s*(\d{1,2})", re.I)
 AUTO_OK = {"due_decimal"}  # review reasons that do not keep a visit out of the auto-accepted set
 COMPANY_OK = 0.9
@@ -93,25 +94,29 @@ def _attach(items, reads):
     return keys
 
 
-def _company_items(kept):
-    """Review items for customers the company list does not know well enough. Only
-    runs when excel/companies.py exists."""
-    if importlib.util.find_spec("excel.companies") is None:
-        return []
-    from . import companies
+@functools.lru_cache(maxsize=None)
+def _master(importer_dir: str):
+    """The company master, loaded once per process."""
+    from .companies import Master
+    return Master.load(importer_dir)
 
-    match = getattr(companies, "match", None)
-    if match is None:  # the module exists but its matcher is not written yet
-        return []
+
+def _company_items(kept, master=None):
+    """Review items for customers the company list does not know well enough, and
+    the match itself in visit.extra["company_match"] for the ones it does."""
+    if master is None:
+        master = _master(IMPORTER_DIR)
     out = []
     for r in kept:
         name = r.visit.customer_raw
-        if not name:
+        if not name or r.visit.extra.get("kind"):  # internal and exhibition rows are not customers
             continue
-        m = match(name)
-        if getattr(m, "score", 0) < COMPANY_OK:
+        m = master.match(name)
+        r.visit.extra["company_match"] = {"code": m.code, "cn": m.cn, "en": m.en,
+                                          "score": m.score, "method": m.method}
+        if m.score < COMPANY_OK:
             out.append((ReviewItem(r.layout, r.visit.workbook, r.visit.sheet, r.visit.excel_row_start,
-                                   "customer", name, "company", list(getattr(m, "candidates", []))),
+                                   "customer", name, "company", [list(c) for c in (m.candidates or [])]),
                         r.visit.visit_key))
     return out
 

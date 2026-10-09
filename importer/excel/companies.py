@@ -8,6 +8,7 @@ from pathlib import Path
 
 import openpyxl
 import xlrd
+from pypinyin import lazy_pinyin
 from rapidfuzz import fuzz
 
 MASTER_GLOB = "mail/staging/files/*/*Customer_List_20260104*.xlsx"
@@ -21,14 +22,57 @@ SHORT_LABELS = {"客户简称"}
 HEADER_SCAN_ROWS = 5
 
 AUTO_SCORE = 0.9
-FUZZY_MIN = 92
+FUZZY_MIN = 90
 FUZZY_GAP = 5
+REVIEW_MIN = 60
+CN_MIN = 2  # shortest CJK core allowed to match by itself
+EN_MIN = 4  # shortest latin core allowed to match by itself
+PINYIN_PREFIX_MIN = 6
 
 _BRACKET_PREFIX_RE = re.compile(r"^\s*[(\[（【][^)\]）】]*[)\]）】]")
 _PUNCT_RE = re.compile(r"[^0-9a-z一-鿿]+")
 _SUFFIX_RE = re.compile(
     r"有限责任公司|股份有限公司|有限公司|股份|集团|(?<![a-z])(?:co ltd|gmbh|inc|ltd)(?![a-z])"
 )
+CJK_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]+")
+CODE_RE = re.compile(r"(?<![A-Za-z0-9])0*([A-Za-z]{2,4}\d{5,})(?!\d)")
+
+CN_LEGAL = ("有限责任公司", "股份有限公司", "有限公司", "股份", "集团")
+CN_GENERIC = ("责任", "科技", "技术", "精密", "机械", "设备", "装备", "智能", "自动化", "数控", "制造",
+              "工业", "发展", "贸易", "实业", "机床", "国际")
+CN_STRIP = tuple(sorted(CN_LEGAL + CN_GENERIC, key=len, reverse=True))
+
+LAT_STRIP = frozenset({
+    "co", "ltd", "limited", "inc", "corp", "corporation", "gmbh", "llc",
+    "company", "group", "technology", "tech", "precision", "machinery", "machine",
+    "equipment", "intelligent", "automation", "cnc", "manufacturing", "industrial",
+    "industry", "international",
+})
+
+CN_PLACES = (
+    "上海", "北京", "天津", "重庆", "宁夏", "银川", "沈阳", "大连", "广州", "深圳", "东莞", "佛山",
+    "珠海", "中山", "惠州", "江门", "汕头", "杭州", "宁波", "温州", "嘉兴", "绍兴", "台州", "金华",
+    "南京", "苏州", "无锡", "常州", "昆山", "常熟", "江阴", "张家港", "南通", "扬州", "徐州", "青岛",
+    "济南", "烟台", "潍坊", "临沂", "武汉", "长沙", "成都", "西安", "郑州", "合肥", "南昌", "福州",
+    "厦门", "泉州", "哈尔滨", "长春", "石家庄", "唐山", "保定", "太原", "呼和浩特", "兰州", "西宁",
+    "乌鲁木齐", "拉萨", "昆明", "贵阳", "南宁", "海口", "香港", "澳门", "台湾", "江苏", "浙江",
+    "广东", "山东", "河北", "河南", "湖北", "湖南", "四川", "陕西", "辽宁", "吉林", "黑龙江", "安徽",
+    "江西", "福建", "山西", "云南", "贵州", "广西", "海南", "甘肃", "青海", "新疆", "西藏", "内蒙古",
+)
+CN_PLACES_SORTED = tuple(sorted(set(CN_PLACES), key=len, reverse=True))
+EN_PLACES = frozenset({
+    "shanghai", "beijing", "tianjin", "chongqing", "ningxia", "yinchuan", "shenyang", "dalian",
+    "guangzhou", "shenzhen", "dongguan", "foshan", "zhuhai", "zhongshan", "huizhou", "jiangmen",
+    "shantou", "hangzhou", "ningbo", "wenzhou", "jiaxing", "shaoxing", "taizhou", "jinhua", "nanjing",
+    "suzhou", "wuxi", "changzhou", "kunshan", "changshu", "jiangyin", "zhangjiagang", "nantong",
+    "yangzhou", "xuzhou", "qingdao", "jinan", "yantai", "weifang", "linyi", "wuhan", "changsha",
+    "chengdu", "xian", "zhengzhou", "hefei", "nanchang", "fuzhou", "xiamen", "quanzhou", "harbin",
+    "changchun", "shijiazhuang", "tangshan", "baoding", "taiyuan", "hohhot", "lanzhou", "xining",
+    "urumqi", "lhasa", "kunming", "guiyang", "nanning", "haikou", "hong kong", "macau", "taiwan",
+    "jiangsu", "zhejiang", "guangdong", "shandong", "hebei", "henan", "hubei", "hunan", "sichuan",
+    "shaanxi", "liaoning", "jilin", "heilongjiang", "anhui", "jiangxi", "fujian", "shanxi", "yunnan",
+    "guizhou", "guangxi", "hainan", "gansu", "qinghai", "xinjiang", "tibet", "inner mongolia",
+}) | {"".join(lazy_pinyin(p)) for p in CN_PLACES}
 
 
 def norm(text) -> str:
@@ -128,17 +172,82 @@ def _read_xls(path: Path) -> list[list]:
     return [[sh.row_values(r) for r in range(sh.nrows)] for sh in wb.sheets()]
 
 
+def _prepare(text) -> str:
+    s = unicodedata.normalize("NFKC", str(text or "")).replace("\n", " ")
+    return _BRACKET_PREFIX_RE.sub(" ", s).strip()
+
+
+def _canon_code(code: str) -> str:
+    return code.upper().lstrip("0")
+
+
+def _extract_codes(text: str) -> tuple[list[str], str]:
+    codes = [_canon_code(m.group(1)) for m in CODE_RE.finditer(text)]
+    return codes, CODE_RE.sub(" ", text)
+
+
+def _near_contains(a: str, b: str) -> bool:
+    """One core is inside the other and covers at least 80% of it (no short word inside a long name)."""
+    short, long_ = sorted((a, b), key=len)
+    return short in long_ and len(short) * 5 >= len(long_) * 4
+
+
+def _pinyin(text: str) -> str:
+    return "".join(lazy_pinyin(text)).lower()
+
+
+def _cn_core(cjk: str) -> str:
+    """CJK name without legal suffixes, generic industry words and one leading province/city."""
+    s = cjk
+    for word in CN_STRIP:
+        s = s.replace(word, "")
+    stripped = True
+    while stripped:
+        stripped = False
+        for place in CN_PLACES_SORTED:
+            if s.startswith(place) and len(s) - len(place) >= CN_MIN:
+                s = s[len(place):]
+                stripped = True
+                break
+    return s
+
+
+def _en_core(latin: str) -> str:
+    """Latin name letters/digits only, without legal suffixes, generic words and one leading place."""
+    toks = [t for t in re.sub(r"[^0-9a-z]+", " ", latin.lower()).split() if t not in LAT_STRIP]
+    for n in (2, 1):
+        if len(toks) > n and " ".join(toks[:n]) in EN_PLACES and len("".join(toks[n:])) >= EN_MIN:
+            toks = toks[n:]
+            break
+    return "".join(toks)
+
+
 class Master:
     def __init__(self, companies: list[Company], sources: dict[str, int], skipped: list[str]):
         self.companies = companies
         self.sources = sources
         self.skipped = skipped
         self._exact: dict[str, list[int]] = {}
-        self._keys: list[tuple[int, str]] = []
+        self._by_code: dict[str, int] = {}
+        self._cn: list[tuple[int, str]] = []  # CJK cores of CN / short names
+        self._en: list[tuple[int, str]] = []  # latin cores of EN names
+        self._py: list[tuple[int, str]] = []  # pinyin of CN cores
         for idx, company in enumerate(companies):
-            for key in {norm(n) for n in company.names()} - {""}:
-                self._exact.setdefault(key, []).append(idx)
-                self._keys.append((idx, key))
+            if company.code:
+                self._by_code.setdefault(_canon_code(company.code), idx)
+            for name in company.names():
+                key = norm(name)
+                if key:
+                    self._exact.setdefault(key, []).append(idx)
+                text = _prepare(name)
+                cjk = "".join(CJK_RE.findall(text))
+                cn = _cn_core(cjk) if cjk else ""
+                if cn:
+                    self._cn.append((idx, cn))
+                    self._py.append((idx, _pinyin(cn)))
+                en = _en_core(CJK_RE.sub(" ", text))
+                if en:
+                    self._en.append((idx, en))
 
     @property
     def size(self) -> int:
@@ -198,35 +307,72 @@ class Master:
         }
 
     def match(self, name) -> Match:
-        q = norm(name)
-        if not q:
-            return Match(None, "", "", 0.0, "none")
+        text = _prepare(name)
+        codes, text = _extract_codes(text)
+        for code in codes:
+            idx = self._by_code.get(code)
+            if idx is not None:
+                return self._found(idx, 1.0, "code")
 
-        hits = sorted(set(self._exact.get(q, [])))
+        q = norm(text)
+        cjk = "".join(CJK_RE.findall(text))
+        cq = _cn_core(cjk) if cjk else ""
+        eq = _en_core(CJK_RE.sub(" ", text))
+        if not cq and not eq or self.size == 0:
+            return Match(None, "", "", 0.0, "none")
+        usable_cn = len(cq) >= CN_MIN
+        usable_en = len(eq) >= EN_MIN
+
+        hits = sorted(set(self._exact.get(q, []))) if q else []
         if len(hits) == 1:
             return self._found(hits[0], 1.0, "exact")
         if len(hits) > 1:
             return Match(None, "", "", 0.0, "ambiguous",
                          [self._cand(i, 1.0) for i in hits[:3]])
 
-        if len(q) >= 4:
-            contains = {i for i, key in self._keys if len(key) >= 4 and (q in key or key in q)}
-            if len(contains) == 1:
-                return self._found(contains.pop(), AUTO_SCORE, "contains")
+        contains: set[int] = set()
+        if usable_cn:
+            contains |= {i for i, k in self._cn if len(k) >= CN_MIN and _near_contains(cq, k)}
+        if usable_en:
+            contains |= {i for i, k in self._en if len(k) >= EN_MIN and _near_contains(eq, k)}
+        if len(contains) == 1:
+            return self._found(contains.pop(), AUTO_SCORE, "contains")
 
-        best: dict[int, float] = {}
-        for i, key in self._keys:
-            s = max(fuzz.token_set_ratio(q, key), fuzz.partial_ratio(q, key))
-            if s > best.get(i, -1.0):
-                best[i] = s
-        ranked = sorted(best.items(), key=lambda kv: (-kv[1], kv[0]))
-        top = [self._cand(i, s / 100) for i, s in ranked[:3]]
-        if ranked:
-            top_idx, top_s = ranked[0]
-            second = ranked[1][1] if len(ranked) > 1 else 0.0
-            if top_s >= FUZZY_MIN and top_s - second >= FUZZY_GAP:
-                return self._found(top_idx, round(top_s * 0.95 / 100, 4), "fuzzy", top)
-        return Match(None, "", "", 0.0, "none", top)
+        if usable_en:
+            equal_py = sorted({i for i, p in self._py if p == eq})
+            if len(equal_py) == 1:
+                return self._found(equal_py[0], 0.95, "pinyin")
+            if len(equal_py) > 1:
+                return Match(None, "", "", 0.0, "ambiguous",
+                             [self._cand(i, 0.95) for i in equal_py[:3]])
+            prefix = {i for i, p in self._py
+                      if min(len(p), len(eq)) >= PINYIN_PREFIX_MIN and (p.startswith(eq) or eq.startswith(p))}
+            if len(prefix) == 1:
+                return self._found(prefix.pop(), AUTO_SCORE, "pinyin")
+
+        best: dict[int, tuple[float, bool]] = {}
+        for is_cn, keys, query in ((True, self._cn, cq), (False, self._en, eq)):
+            if not query:
+                continue
+            for i, k in keys:
+                s = fuzz.ratio(query, k)
+                if s > best.get(i, (-1.0, False))[0]:
+                    best[i] = (s, is_cn)
+        ranked = sorted(best.items(), key=lambda kv: (-kv[1][0], kv[0]))
+        top = [self._cand(i, s / 100) for i, (s, _) in ranked[:3]]
+        usable = usable_cn or usable_en
+        if not ranked:
+            return Match(None, "", "", 1.0, "new") if usable else Match(None, "", "", 0.0, "review")
+        top_idx, (top_s, top_is_cn) = ranked[0]
+        second = ranked[1][1][0] if len(ranked) > 1 else 0.0
+        if top_s < REVIEW_MIN:
+            if usable:
+                return Match(None, "", "", 1.0, "new")
+            return Match(None, "", "", round(top_s / 100, 4), "review", top)
+        top_usable = usable_cn if top_is_cn else usable_en
+        if top_usable and top_s >= FUZZY_MIN and top_s - second >= FUZZY_GAP:
+            return self._found(top_idx, round(top_s * 0.95 / 100, 4), "fuzzy", top)
+        return Match(None, "", "", round(top_s / 100, 4), "review", top)
 
     def _found(self, idx: int, score: float, method: str, candidates=None) -> Match:
         c = self.companies[idx]

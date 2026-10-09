@@ -67,17 +67,103 @@ def test_fuzzy_typo_with_clear_gap_is_auto_accepted(master):
     assert 0.9 <= m.score <= 0.95
 
 
-def test_no_match_returns_none_with_top_candidates(master):
+def test_unrelated_name_is_confident_new_company(master):
     m = master.match("Quux Zzyzx Unrelated")
-    assert m.method == "none"
-    assert m.code is None
-    assert m.score == 0
-    assert 1 <= len(m.candidates) <= 3
+    assert (m.method, m.score, m.code) == ("new", 1.0, None)
+    assert m.candidates == []
 
 
 def test_empty_query_is_none(master):
     m = master.match("")
     assert m.method == "none" and m.code is None
+
+
+def test_empty_master_is_none_not_new():
+    m = Master.from_records([]).match("Quux Zzyzx Unrelated")
+    assert m.method == "none" and m.code is None
+
+
+def _tricky_master():
+    return Master.from_records([
+        {"source": "master", "code": "CR0701256", "cn": "甲乙丙机电有限公司", "en": "", "short": ""},
+        {"source": "master", "code": "CR992066", "cn": "丁戊己贸易有限公司", "en": "", "short": ""},
+        {"source": "master", "code": "P1", "cn": "宁夏巨冈机械有限公司", "en": "", "short": ""},
+        {"source": "master", "code": "P2", "cn": "壬癸子丑", "en": "", "short": ""},
+        {"source": "master", "code": "F1", "cn": "甲乙丙丁戊己庚辛机电有限公司", "en": "", "short": ""},
+        {"source": "master", "code": "E1", "cn": "", "en": "Delta Machinery Technology Co., Ltd.", "short": ""},
+        {"source": "master", "code": "E2", "cn": "", "en": "Abacus Trading", "short": ""},
+        {"source": "master", "code": "E3", "cn": "", "en": "Kestrel Microsystems Corporation", "short": ""},
+    ])
+
+
+def test_customer_code_matches_exactly_and_ignores_leading_zeros():
+    master = _tricky_master()
+    m = master.match("00CR992066 随便什么")
+    assert (m.code, m.method, m.score) == ("CR992066", "code", 1.0)
+    m = master.match("CR0701256")
+    assert (m.code, m.method, m.score) == ("CR0701256", "code", 1.0)
+
+
+def test_chinese_query_never_matches_english_only_company():
+    m = _tricky_master().match("石英港")
+    assert (m.code, m.method) == (None, "new")
+
+
+def test_latin_query_never_matches_chinese_name_without_pinyin_equality():
+    m = _tricky_master().match("Quartz Harbor")
+    assert (m.code, m.method) == (None, "new")
+
+
+def test_generic_industry_words_are_not_scored():
+    master = _tricky_master()
+    m = master.match("Quux Machinery Technology Co., Ltd.")
+    assert (m.code, m.method) == (None, "new")
+    m = master.match("乙丙机械科技有限公司")
+    assert (m.code, m.method) == (None, "new")
+    m = master.match("Machinery Technology Co., Ltd.")
+    assert m.method == "none" and m.code is None
+
+
+def test_province_prefix_is_ignored_in_both_scripts():
+    master = _tricky_master()
+    m = master.match("上海甲乙丙机电")
+    assert (m.code, m.method, m.score) == ("CR0701256", "contains", 0.9)
+    m = master.match("Shanghai Abacus Trading Co.")
+    assert (m.code, m.method) == ("E2", "contains")
+
+
+def test_mixed_script_query_compares_each_part_with_its_own_script():
+    m = _tricky_master().match("宁夏巨冈 JUGANG")
+    assert (m.code, m.method) == ("P1", "contains")
+
+
+def test_latin_core_equal_to_pinyin_of_chinese_core_scores_095():
+    m = _tricky_master().match("JUGANG")
+    assert (m.code, m.method, m.score) == ("P1", "pinyin", 0.95)
+
+
+def test_pinyin_prefix_of_at_least_six_letters_scores_09_when_unique():
+    m = _tricky_master().match("renguizicho")
+    assert (m.code, m.method, m.score) == ("P2", "pinyin", 0.9)
+
+
+def test_short_latin_core_cannot_auto_match():
+    m = _tricky_master().match("AB Co., Ltd.")
+    assert m.code is None
+    assert m.method == "review"
+    assert m.score < 0.9
+
+
+def test_middling_similarity_goes_to_review_with_top_candidates():
+    m = _tricky_master().match("Kestrel Micro Labs")
+    assert m.method == "review" and m.code is None
+    assert m.candidates[0][0] == "E3"
+    assert len(m.candidates) <= 3
+
+
+def test_chinese_fuzzy_typo_with_clear_gap_is_fuzzy():
+    m = _tricky_master().match("甲乙丙丁戊己庚辛机屯有限公司")
+    assert (m.code, m.method) == ("F1", "fuzzy")
 
 
 def test_size_counts_merged_companies(master):

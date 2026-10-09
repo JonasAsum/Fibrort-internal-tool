@@ -71,6 +71,50 @@ class WeeklyLayout(TmpCase):
         self.assertEqual((visits, week, review), ([], None, []))
 
 
+class WeeklyFixes(TmpCase):
+    def read(self, cells):
+        path = write_book(self.path(WEEKLY_NAME), {"CW21": {"cells": cells}})
+        ((_, visits, _, review),) = [read_sheet(s, path) for s in load(path)]
+        return visits, review
+
+    def test_date_without_customer_is_still_a_visit(self):
+        visits, review = self.read(weekly_cells(B9="Jason Zhao", D9=datetime(2026, 5, 18), P9="Call"))
+        self.assertEqual([(v.customer_raw, v.date_iso) for v in visits], [("", "2026-05-18")])
+        self.assertIn("no_customer", {r.reason for r in review})
+
+    def test_placeholders_are_empty_in_text_fields(self):
+        visits, review = self.read(weekly_cells(
+            B9="Jason Zhao", D9=datetime(2026, 5, 18), F9="/", G9="-", H9="none", I9="暂无",
+            J9="无", L9="n/a", E9="没有", N9="Not offer", R9="—"))
+        (v,) = visits
+        self.assertEqual((v.customer_raw, v.potential, v.customer_type_raw, v.contact_raw), ("", "", "", ""))
+        self.assertEqual((v.phone_raw, v.email, v.city, v.purpose), ("", "", "", ""))
+        self.assertEqual(v.extra["status"], "")
+        self.assertIn("no_customer", {r.reason for r in review})
+
+    def test_year_1900_date_takes_sheet_week_year(self):
+        visits, review = self.read(weekly_cells(B9="Jason Zhao", D9=datetime(1900, 5, 18), F9="Acme Test Co."))
+        self.assertEqual(visits[0].date_iso, "2026-05-18")
+        self.assertNotIn("no_date", {r.reason for r in review})
+
+    def test_two_phone_numbers_split(self):
+        visits, _ = self.read(weekly_cells(B9="Jason Zhao", D9=datetime(2026, 5, 18), F9="Acme Test Co.",
+                                           J9="13800138000 / 13900139000"))
+        self.assertEqual(visits[0].phone_raw, "13800138000")
+        self.assertEqual(visits[0].extra["phone_more"], "13900139000")
+
+    def test_latin_alias_goes_to_name_en(self):
+        visits, _ = self.read(weekly_cells(B9="Jason Zhao", D9=datetime(2026, 5, 18),
+                                           F9="上海某某科技有限公司(Some Name)"))
+        self.assertEqual(visits[0].customer_raw, "上海某某科技有限公司")
+        self.assertEqual(visits[0].extra["name_en"], "Some Name")
+
+    def test_internal_row_is_kept_with_kind(self):
+        visits, review = self.read(weekly_cells(B9="Jason Zhao", D9=datetime(2026, 5, 18), F9="Public Holiday"))
+        self.assertEqual(visits[0].customer_raw, "Public Holiday")
+        self.assertEqual(visits[0].extra["kind"], "internal")
+
+
 class LucasLayout(TmpCase):
     def test_block_key_plan_and_follow_up(self):
         cells = dict(LUCAS_HEADER)

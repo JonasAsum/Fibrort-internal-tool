@@ -20,7 +20,7 @@ from .dates import parse_date, parse_due
 from .headers import find_header, normalize
 from .layouts import detect, label_cell
 from .sheet import Sheet
-from .split import phone_text, split_customer
+from .split import SUFFIX_END, is_other_name, is_placeholder, latin_alias, phone_numbers, split_customer, visit_kind
 
 REPS = ["Jason Zhao", "Devin Guo", "Mark Wang", "Sean Wang", "Ethan Lv", "Jason Yi", "Andrew Zhang", "Lucas Guo"]
 POTENTIAL = {"A", "B", "C"}
@@ -62,13 +62,15 @@ class Ctx:
 
 
 def _text(value) -> str:
+    """The cell as text; placeholders ("/", "none", "无" ...) come back empty."""
     if value is None:
         return ""
     if isinstance(value, datetime):
         return value.date().isoformat()
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
-    return str(value).strip()
+    text = str(value).strip()
+    return "" if is_placeholder(text) else text
 
 
 def _raw(sheet: Sheet, r, c):
@@ -139,13 +141,16 @@ def _order_in_day(visits: list[Visit]) -> None:
 
 def _is_start(sheet: Sheet, r: int, cols: dict, year: int) -> bool:
     c = cols.get("customer")
-    if c is not None and _text(sheet.value(r, c)):
-        return not sheet.is_merged_continuation(r, c)
+    if c is not None and _text(sheet.value(r, c)) and not sheet.is_merged_continuation(r, c):
+        return True
+    # A customer cell merged over several dated rows (one customer, several visits): each
+    # row with its own date is a visit of that customer.
     # Without a customer the date must read as a date, so footnotes in the date column do not start a visit.
     d = cols.get("date")
     if d is None or sheet.is_merged_continuation(r, d):
         return False
-    return parse_date(_raw(sheet, r, d), None, year)[0] is not None
+    iso, flag = parse_date(_raw(sheet, r, d), None, year)
+    return iso is not None or flag in ("ambiguous", "range")
 
 
 def _read_blocks(sheet, ctx, header_row, cols, owner, cw_hint):
@@ -174,7 +179,14 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
     date_iso, date_flag = parse_date(date_cell, ref, ctx.year, lookup=sheet.value)
     visit_day = date.fromisoformat(date_iso) if date_iso else (ref or date(ctx.year, 1, 1))
 
-    name, address, sure = split_customer(cell("customer"))
+    # "上海某某有限公司(Some Name)" on the first line: the latin part is the English name.
+    first, sep, rest = str(cell("customer") or "").partition("\n")
+    first, name_en = latin_alias(first)
+    # A full legal name on the first line with its translation below: the second line is
+    # the other-language name, not an address and not part of the name.
+    if rest and SUFFIX_END.search(first.strip()) and is_other_name(rest):
+        name_en, rest, sep = name_en or " ".join(rest.split()), "", ""
+    name, address, sure = split_customer(first + sep + rest)
     purpose = [cell("purpose")]
     communication = [cell("communication")]
     for r in range(start + 1, end + 1):
@@ -187,7 +199,7 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
     due_c = cols.get("due")
     for r in range(start, end + 1):
         raw = sheet.value(r, due_c) if due_c else None
-        if raw is None or _text(raw) == "":
+        if not _text(raw):
             continue
         iso, phrase, dflag = parse_due(raw, visit_day)
         dues[r] = iso or phrase
@@ -228,7 +240,11 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
     }
     if "follow_up" in cols:
         extra["follow_up"] = cell("follow_up")
-    phone_c = cols.get("phone")
+    extra["name_en"] = name_en
+    extra["kind"] = visit_kind(cell("customer"))
+    phones = phone_numbers(sheet.value(start, cols["phone"])) if "phone" in cols else []
+    if len(phones) > 1:
+        extra["phone_more"] = "; ".join(phones[1:])
     potential = cell("potential").upper()
     visit = Visit(
         workbook=ctx.file, sheet=sheet.name, owner=row_owner,
@@ -238,7 +254,7 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
         city=cell("city"), customer_raw=name,
         potential=potential if potential in POTENTIAL else "",
         customer_type_raw=cell("customer_type"), contact_raw=cell("contact"),
-        phone_raw=phone_text(sheet.value(start, phone_c)) if phone_c else "",
+        phone_raw=phones[0] if phones else "",
         office_phone=cell("office"), email=cell("email"),
         purpose="\n".join(p for p in purpose if p), notes=notes, extra=extra,
     )
@@ -364,7 +380,7 @@ def read_detail(sheet, ctx, owner):
         text = it.get("details") or it.get("topic", "")
         if text:
             notes.append(Note(text=text, highlight=None, deadline="", excel_row=it["row"]))
-        if it["wv"] not in (None, ""):
+        if _text(it["wv"]):
             iso, phrase, _ = parse_due(it["wv"], visit_day)
             notes.append(Note(text=f"{it.get('topic') or text} (Wer: {it.get('wer', '')})",
                               highlight="green", deadline=iso or phrase, excel_row=it["row"]))
@@ -385,7 +401,8 @@ def read_detail(sheet, ctx, owner):
         excel_row_start=items[0]["row"] if items else lr, excel_row_end=items[-1]["last"] if items else lr,
         date_raw=date_raw, date_iso=date_iso, city="", customer_raw=customer, potential="",
         customer_type_raw="", contact_raw="", phone_raw="", office_phone="", email="",
-        purpose="; ".join(topics), notes=notes, extra={"participants": participants},
+        purpose="; ".join(topics), notes=notes,
+        extra={"participants": participants, "kind": visit_kind(customer)},
     )
     return [visit], None, review
 
