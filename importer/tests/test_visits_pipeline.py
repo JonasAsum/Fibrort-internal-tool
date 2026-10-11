@@ -115,3 +115,41 @@ class OldKeysAreRecognised(TmpCase):
         report, _ = load(crm, b)
         self.assertEqual((report.activities_created, report.tasks_created), (1, 0))
         self.assertEqual(len(crm.activities), n + 1)
+
+
+# ---- a contact whose email the CRM already holds ----
+
+def contact_file(path, rows):
+    """rows: [(customer, contact name, phone, email)] on consecutive days."""
+    cells = dict(WEEKLY_HEADER)
+    cells.update({"E4": "Owner：", "F4": "Jason Zhao"})
+    for i, (customer, name, phone, email) in enumerate(rows):
+        r = 9 + i
+        cells.update({f"B{r}": "Jason Zhao", f"D{r}": datetime(2026, 5, 18 + i), f"F{r}": customer,
+                      f"I{r}": name, f"J{r}": phone, f"L{r}": email, f"H{r}": "exist"})
+    return write_book(path, {"CW21": {"cells": cells}})
+
+
+class DuplicateEmail(TmpCase):
+    NAME = "Template for Weekly Sales Reporting 2026_CW21_Rep.xlsx"
+
+    def test_same_person_is_reused_and_still_gets_the_new_phone(self):
+        p = contact_file(self.path(self.NAME), [("Acme Test Co.", "Wang Test", "13600001111", "w@test.example"),
+                                                ("Beta Test GmbH", "Wang Test", "13600002222", "w@test.example")])
+        crm = FakeCRM()
+        report, _ = load(crm, p)
+        self.assertEqual(len(crm.contacts), 1)
+        (c,) = crm.contacts.values()
+        self.assertEqual({x["phone"] for x in c["phones"]}, {"+8613600001111", "+8613600002222"})
+        self.assertEqual(len(crm.employment), 2)
+
+    def test_a_different_person_with_that_email_is_created_without_it(self):
+        p = contact_file(self.path(self.NAME), [("Acme Test Co.", "Wang Test", "13600001111", "shared@test.example"),
+                                                ("Beta Test GmbH", "Li Other", "13600002222", "shared@test.example")])
+        crm = FakeCRM()
+        report, _ = load(crm, p)
+        by_name = {c["full_name"]: c for c in crm.contacts.values()}
+        self.assertEqual(set(by_name), {"Wang Test", "Li Other"})
+        self.assertEqual(by_name["Li Other"]["emails"], [])
+        self.assertEqual(len(by_name["Wang Test"]["emails"]), 1)
+        self.assertEqual(report.contacts_created, 2)

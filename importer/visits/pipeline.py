@@ -468,12 +468,28 @@ class _Run:
         try:
             contact_id = self.client.create_contact(body)["id"]
         except ApiError as exc:
-            # The CRM already holds a person with this email (the same person written two
-            # ways, or met at two companies): that record is the contact, linked here too.
             existing = _existing_id(exc, "duplicate_email")
             if not existing:
                 raise
-            contact_id, created = existing, False
+            held = self.client.get_contact(existing)
+            if fold_name(held.get("full_name")) == fold_name(contact.full_name):
+                # The same person met at two companies (or written two ways): that record is
+                # the contact, linked here too, and it learns the numbers this sheet adds.
+                contact_id, created = existing, False
+                self.add_reachability(existing, contact)
+            else:
+                # Somebody else's address (a shared mailbox, a colleague's): this person is
+                # created without it; the address stays in the visit's text.
+                taken = {e["email"].lower() for e in held.get("emails") or []}
+                free = [e for e in body["emails"] if e["email"].lower() not in taken]
+                body["emails"] = [{**e, "is_primary": i == 0, "position": i} for i, e in enumerate(free)]
+                try:
+                    contact_id = self.client.create_contact(body)["id"]
+                except ApiError as again:
+                    if not _existing_id(again, "duplicate_email"):
+                        raise
+                    body["emails"] = []
+                    contact_id = self.client.create_contact(body)["id"]
         try:
             self.client.link_employment(contact_id, company_id)
         except ApiError as exc:
