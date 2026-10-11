@@ -75,8 +75,9 @@ def test_same_visit_in_two_files_says_which_file_won(page, server, tmp_path):
     assert upload(page, server, [older, newer]) == "review"
     text = page_text(page)
     assert stats(page)["found"] == 1
-    assert re.search(r"same visit.*" + re.escape(NAME22), text, re.S), text
-    assert re.search(re.escape(NAME21) + r".*(ignored|left out|not used)", text, re.S), text
+    # The CW22 copy holds a visit dated in week 21: the CW21 file is where it belongs, so that one is used.
+    assert re.search(r"same visit.*" + re.escape(NAME21), text, re.S), text
+    assert re.search(re.escape(NAME22) + r".*(ignored|left out|not used)", text, re.S), text
 
 
 def test_sheet_that_cannot_be_read_is_named(page, server, tmp_path):

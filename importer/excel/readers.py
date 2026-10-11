@@ -95,6 +95,19 @@ def normalize_owner(raw) -> str:
     return hits[0] if len(hits) == 1 else ""
 
 
+def owner_from_filename(name: str) -> str:
+    """A rep named in a file name: the full name, else a first name only one rep has."""
+    stem = re.sub(r"[\W_\d]+", " ", os.path.splitext(os.path.basename(name))[0]).lower()
+    words = stem.split()
+    full = [rep for rep in REPS if rep.lower() in stem]
+    if len(full) == 1:
+        return full[0]
+    firsts = {w for w in words}
+    hits = [rep for rep in REPS if rep.split()[0].lower() in firsts]
+    first_names = [rep.split()[0] for rep in REPS]
+    return hits[0] if len(hits) == 1 and first_names.count(hits[0].split()[0]) == 1 else ""
+
+
 def _sheet_owner(sheet: Sheet, folder_owner: str) -> str:
     at = label_cell(sheet, "owner", max_row=8)
     if at:
@@ -522,7 +535,8 @@ def read_sheet(sheet: Sheet, path: str):
     layout = detect(sheet, path)
     if layout is None:
         return None, [], None, []
-    folder_owner = normalize_owner(os.path.basename(os.path.dirname(os.path.abspath(path))))
+    folder_owner = (normalize_owner(os.path.basename(os.path.dirname(os.path.abspath(path))))
+                    or owner_from_filename(path))
     cw = _file_cw(path) if layout == "lucas" else _sheet_cw(sheet.name) or _file_cw(path)
     year, known = _year_for(path, cw)
     ctx = Ctx(path=path, family=layout, year=year, folder_owner=folder_owner, year_known=known)

@@ -1,6 +1,7 @@
 """The web UI upload must read the real weekly-report layouts, not only the old
 "Date in column A" visit list. Workbooks here are made up."""
 import io
+import os
 from datetime import datetime
 
 from tests.excel_book import LUCAS_HEADER, WEEKLY_HEADER, TmpCase, write_book
@@ -86,3 +87,57 @@ class Upload(TmpCase):
         d = self.client.post("/api/upload", data=data, content_type="multipart/form-data").get_json()
         self.assertEqual(d["found"], 1)
         self.assertTrue(any(NAME22 == f["file"] and NAME21 in f["why"] for f in d["skipped_files"]), d["skipped_files"])
+
+
+def ownerless_book(path, customer="Beta Test Co."):
+    """A weekly report whose cells name no sales rep."""
+    cells = dict(WEEKLY_HEADER)
+    cells.update({"D9": datetime(2026, 5, 18), "F9": customer, "P9": "Call"})
+    return write_book(path, {"CW21": {"cells": cells}})
+
+
+class UploadOwner(Upload):
+    def post(self, files, **form):
+        data = {"files": [(io.BytesIO(open(p, "rb").read()), name) for p, name in files], **form}
+        return self.client.post("/api/upload", data=data, content_type="multipart/form-data")
+
+    def owners(self):
+        return [v.owner for v in server.CURRENT["parsed"].visits]
+
+    def test_rep_folder_of_the_browser_path_is_kept(self):
+        r = self.post([(ownerless_book(self.path("a.xlsx")), "Devin Guo/" + WEEKLY_NAME)])
+        self.assertEqual(r.status_code, 200, r.get_json())
+        self.assertEqual(self.owners(), ["Devin Guo"])
+
+    def test_rep_chosen_on_the_page_wins(self):
+        r = self.post([(ownerless_book(self.path("a.xlsx")), WEEKLY_NAME)], rep="Mark Wang")
+        self.assertEqual(self.owners(), ["Mark Wang"], r.get_json())
+
+    def test_rep_in_the_file_name_is_found(self):
+        name = "Weekly Sales Reporting 2026_CW21_Lucas Guo.xlsx"
+        self.post([(ownerless_book(self.path("a.xlsx")), name)])
+        self.assertEqual(self.owners(), ["Lucas Guo"])
+
+    def test_unknown_rep_is_refused(self):
+        r = self.post([(ownerless_book(self.path("a.xlsx")), WEEKLY_NAME)], rep="Nobody Known")
+        self.assertEqual(r.status_code, 400)
+
+    def test_reps_are_listed_for_the_page(self):
+        self.assertIn("Jason Zhao", self.client.get("/api/reps").get_json()["reps"])
+
+    def test_two_files_with_one_name_overwrite_nothing(self):
+        a = ownerless_book(self.path("a.xlsx"), "Acme Test Co.")
+        b = ownerless_book(self.path("b.xlsx"), "Beta Test Co.")
+        d = self.post([(a, "Jason Zhao/" + WEEKLY_NAME), (b, "Devin Guo/" + WEEKLY_NAME)]).get_json()
+        self.assertEqual(d["found"], 1)
+        self.assertTrue(any("same file name" in f["why"] for f in d["skipped_files"]), d["skipped_files"])
+        saved = [os.path.join(dp, n) for dp, _, ns in os.walk(server.UPLOAD_DIR) for n in ns]
+        self.assertEqual(len(saved), 2)
+
+    def test_a_failed_upload_leaves_no_earlier_data_to_import(self):
+        self.upload(weekly_book(self.path("b.xlsx")), WEEKLY_NAME)
+        self.assertIsNotNone(server.CURRENT["parsed"])
+        r = self.post([(self.path("b.xlsx"), "notes.txt")])
+        self.assertEqual(r.status_code, 400)
+        self.assertIsNone(server.CURRENT["parsed"])
+        self.assertFalse(self.client.get("/api/dataset").get_json()["loaded"])

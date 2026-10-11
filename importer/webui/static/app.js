@@ -177,7 +177,8 @@ async function uploadFiles(fileList) {
   dropzone.querySelector(".dz-title").textContent = `Reading ${files.length} file(s)…`;
 
   const form = new FormData();
-  files.forEach((f) => form.append("files", f));
+  files.forEach((f) => form.append("files", f, f.webkitRelativePath || f.name));  // keeps a rep folder name
+  if ($("#rep-select").value) form.append("rep", $("#rep-select").value);
   try {
     const summary = await api("/api/upload", { method: "POST", body: form });
     renderReview(summary);
@@ -191,6 +192,10 @@ async function uploadFiles(fileList) {
     fileInput.value = "";
   }
 }
+
+api("/api/reps").then((d) => {
+  $("#rep-select").insertAdjacentHTML("beforeend", d.reps.map((r) => `<option>${esc(r)}</option>`).join(""));
+});
 
 // ---- step 2: review ----
 

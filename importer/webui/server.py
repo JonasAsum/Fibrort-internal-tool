@@ -9,6 +9,7 @@ import glob
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -27,6 +28,7 @@ if ROOT not in sys.path:  # also allow `python webui/server.py`
 from common.client import ApiError, MargenceClient  # noqa: E402
 from visits import pipeline  # noqa: E402
 from visits.match import match  # noqa: E402
+from excel.readers import REPS  # noqa: E402
 from excel.run import read_paths  # noqa: E402
 from excel_margince import accepted  # noqa: E402
 
@@ -40,6 +42,8 @@ DEFAULT_CONFIG = {"base_url": "http://localhost:8080", "email": "admin@demo.test
 
 CURRENT = {"files": [], "parsed": None, "result": None, "run": None}
 JOBS: dict[str, dict] = {}
+COMMIT_LOCK = threading.Lock()  # one import into the CRM at a time
+UPLOAD_LOCK = threading.Lock()  # one upload at a time: they share the upload folder and CURRENT
 
 
 def _load_config() -> dict:
@@ -64,16 +68,53 @@ def _client() -> MargenceClient:
 SKIP_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".uploads"}
 
 
-def _code_state() -> dict:
-    """The checkout's git HEAD and the newest mtime of importer/**/*.py right now."""
+HEAD_TTL = 30  # seconds the git HEAD is reused (unless HEAD or its branch moved): every open page polls /api/version
+_HEAD_CACHE: dict = {}
+
+
+def _head_stamp():
+    """Modification times of the files a commit or checkout rewrites (cheap stats, no git call)."""
+    here = ROOT
+    while not os.path.exists(os.path.join(here, ".git")):
+        if os.path.dirname(here) == here:
+            return None
+        here = os.path.dirname(here)
+    git_dir = os.path.join(here, ".git")
+    if os.path.isfile(git_dir):
+        return None
+    stamp = []
+    try:
+        with open(os.path.join(git_dir, "HEAD")) as f:
+            ref = f.read().strip()
+        names = ["HEAD", "packed-refs"] + ([ref[5:].strip()] if ref.startswith("ref:") else [])
+        for name in names:
+            path = os.path.join(git_dir, name)
+            stamp.append(os.path.getmtime(path) if os.path.exists(path) else None)
+    except OSError:
+        return None
+    return tuple(stamp)
+
+
+def _git_head() -> str:
+    now, stamp = time.monotonic(), _head_stamp()
+    if "at" in _HEAD_CACHE and now - _HEAD_CACHE["at"] < HEAD_TTL and _HEAD_CACHE["stamp"] == stamp:
+        return _HEAD_CACHE["head"]
     try:
         head = subprocess.run(["git", "-C", ROOT, "rev-parse", "HEAD"], capture_output=True, text=True,
                               timeout=5).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         head = ""
+    _HEAD_CACHE.update(at=now, head=head, stamp=stamp)
+    return head
+
+
+def _code_state() -> dict:
+    """The checkout's git HEAD and the newest mtime of importer/**/*.py right now (tests/ do not count)."""
+    head = _git_head()
     newest = 0.0
     for dirpath, dirs, names in os.walk(ROOT):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith("staging")]
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith("staging")
+                   and not (dirpath == ROOT and d == "tests")]
         for n in names:
             if n.endswith(".py"):
                 try:
@@ -229,26 +270,58 @@ EXCEL_TYPES = (".xlsx", ".xls")
 
 
 def _clear_uploads():
+    """Empties the upload folder of workbooks (each upload lives in its own f<n> subfolder)."""
     for kind in EXCEL_TYPES:
         for stale in glob.glob(os.path.join(UPLOAD_DIR, "*" + kind)):
             os.remove(stale)
+    for sub in glob.glob(os.path.join(UPLOAD_DIR, "f[0-9]*")):
+        shutil.rmtree(sub, ignore_errors=True)
+
+
+def _forget():
+    CURRENT.update(files=[], parsed=None, result=None, run=None)
+
+
+def _folder_of(filename: str) -> str:
+    """The folder a browser reported for the file ("Jason Zhao/x.xlsx" -> "Jason Zhao"), made safe as a name."""
+    parts = [p for p in filename.replace("\\", "/").split("/") if p not in ("", ".", "..")]
+    return re.sub(r"[^\w .-]", "_", parts[-2]).lstrip(".") if len(parts) > 1 else ""
+
+
+@app.get("/api/reps")
+def reps():
+    return jsonify({"reps": REPS})
 
 
 @app.post("/api/upload")
 def upload():
+    with UPLOAD_LOCK:
+        _forget()  # whatever happens below, nothing from an earlier upload may be imported by mistake
+        return _upload()
+
+
+def _upload():
     files = request.files.getlist("files")
     if not files:
         return jsonify({"error": "no files in the request"}), 400
+    rep = (request.form.get("rep") or "").strip()
+    if rep and rep not in REPS:
+        return jsonify({"error": f"unknown sales rep: {rep}"}), 400
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     _clear_uploads()
 
     saved_paths, names = [], []
-    for f in files:
+    for i, f in enumerate(files):
         name = os.path.basename(f.filename.replace("\\", "/"))
         if not name.lower().endswith(EXCEL_TYPES):
+            _clear_uploads()
             return jsonify({"error": f"{name} is not an Excel file (.xlsx or .xls)"}), 400
-        path = os.path.join(UPLOAD_DIR, name)
+        # Its own folder per file: two files with one name never overwrite each other, and the
+        # folder the browser reported (or the rep chosen on the page) names the sales rep.
+        folder = os.path.join(UPLOAD_DIR, f"f{i}", rep or _folder_of(f.filename))
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, name)
         f.save(path)
         saved_paths.append(path)
         names.append(name)
@@ -260,7 +333,6 @@ def upload():
         return jsonify({"error": f"could not parse the workbook(s): {e}"}), 400
 
     if not run.parsed.visits:  # never a review page of zeros: say why nothing was found
-        CURRENT.update(files=[], parsed=None, result=None, run=None)
         why = "\n".join(f"{p['file']}: {p['why']}" for p in _file_problems(run))
         return jsonify({"error": "No visit list recognised in what you uploaded; nothing was counted or imported."
                                  + (f"\n{why}" if why else "")}), 422
@@ -274,8 +346,9 @@ def upload():
 
 @app.post("/api/clear")
 def clear():
-    CURRENT.update(files=[], parsed=None, result=None, run=None)
-    _clear_uploads()
+    with UPLOAD_LOCK:
+        _forget()
+        _clear_uploads()
     return jsonify({"ok": True})
 
 
@@ -305,6 +378,8 @@ def commit():
     except Exception as e:
         return jsonify({"error": f"could not log in: {e}"}), 400
 
+    if not COMMIT_LOCK.acquire(blocking=False):
+        return jsonify({"error": "an import is already running: wait for it to finish before starting another"}), 409
     job_id = str(uuid.uuid4())
     JOBS[job_id] = {"status": "running", "step": "starting", "started_at": time.time()}
     parsed, result = CURRENT["parsed"], CURRENT["result"]
@@ -322,6 +397,8 @@ def commit():
             })
         except Exception as e:
             JOBS[job_id].update(status="error", error=str(e))
+        finally:
+            COMMIT_LOCK.release()
 
     threading.Thread(target=work, daemon=True).start()
     return jsonify({"job_id": job_id})
