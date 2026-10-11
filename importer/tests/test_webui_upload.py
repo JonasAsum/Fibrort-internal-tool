@@ -85,4 +85,4 @@ class Upload(TmpCase):
             data = {"files": [(io.BytesIO(fa.read()), NAME21), (io.BytesIO(fb.read()), NAME22)]}
         d = self.client.post("/api/upload", data=data, content_type="multipart/form-data").get_json()
         self.assertEqual(d["found"], 1)
-        self.assertTrue(any(NAME21 == f["file"] and NAME22 in f["why"] for f in d["skipped_files"]), d["skipped_files"])
+        self.assertTrue(any(NAME22 == f["file"] and NAME21 in f["why"] for f in d["skipped_files"]), d["skipped_files"])

@@ -140,5 +140,96 @@ class VisitYear(TmpCase):
         self.assertEqual(result.auto_accepted, set())
 
 
+def book_with(path, rows, sheet="CW21"):
+    """rows: [(date, customer)] as visits of Jason Zhao on one sheet."""
+    cells = dict(WEEKLY_HEADER)
+    cells.update({"E4": "Owner：", "F4": "Jason Zhao"})
+    for i, (day, customer) in enumerate(rows):
+        cells.update({f"B{9 + i}": "Jason Zhao", f"D{9 + i}": day, f"F{9 + i}": customer, f"P{9 + i}": "Call"})
+    return write_book(path, {sheet: {"cells": cells}})
+
+
+MON = datetime(2026, 5, 18)
+
+
+class Dedupe(TmpCase):
+    def test_renamed_stale_copy_never_displaces_the_genuine_visit(self):
+        real = book_with(self.path("Template for Weekly Sales Reporting 2026_CW21_Rep.xlsx"), [(MON, "Acme Test Co.")])
+        stale = book_with(self.path("Template for Weekly Sales Reporting 2026_CW23_Rep.xlsx"),
+                          [(MON, "Acme Test Co."), (datetime(2026, 5, 19), "Beta Test GmbH")], sheet="CW21")
+        result = read_paths([real, stale])
+        acme = next(v for v in result.parsed.visits if v.customer_raw == "Acme Test Co.")
+        self.assertEqual(acme.workbook, os.path.basename(real))
+        self.assertIn(acme.visit_key, result.auto_accepted)
+        self.assertEqual([x["ignored"] for x in result.superseded], [os.path.basename(stale)])
+
+    def test_renamed_copy_with_a_wrong_sheet_name_loses_too(self):
+        real = book_with(self.path("Template for Weekly Sales Reporting 2026_CW21_Rep.xlsx"), [(MON, "Acme Test Co.")])
+        stale = book_with(self.path("Template for Weekly Sales Reporting 2026_CW23_Rep.xlsx"), [(MON, "Acme Test Co.")],
+                          sheet="CW23")
+        result = read_paths([real, stale])
+        (v,) = result.parsed.visits
+        self.assertEqual(v.workbook, os.path.basename(real))
+        self.assertIn(v.visit_key, result.auto_accepted)
+
+    def test_winner_is_picked_among_visits_that_would_be_accepted(self):
+        from types import SimpleNamespace as NS
+        from excel.run import _winner
+        good = NS(eligible=True, week_ok=False, cw=21, mtime=1.0, path="a", sheet="CW21")
+        newer_blocked = NS(eligible=False, week_ok=True, cw=23, mtime=9.0, path="b", sheet="CW21")
+        self.assertIs(_winner([newer_blocked, good]), good)
+        only = [newer_blocked, NS(eligible=False, week_ok=False, cw=25, mtime=9.0, path="c", sheet="CW21")]
+        self.assertIs(_winner(only), only[0])  # none acceptable: still one of them, the one matching its week
+
+    def test_two_visits_to_one_customer_on_one_day_do_not_wipe_each_other(self):
+        old = book_with(self.path("Template for Weekly Sales Reporting 2026_CW21_Rep.xlsx"),
+                        [(MON, "Acme Test Co."), (MON, "Acme Test Co.")])
+        new = book_with(self.path("Template for Weekly Sales Reporting 2026_CW22_Rep.xlsx"),
+                        [(MON, "Acme Test Co."), (MON, "Acme Test Co."), (datetime(2026, 5, 25), "Beta Test GmbH")],
+                        sheet="CW22")
+        result = read_paths([old, new])
+        got = sorted((v.date_iso, v.customer_raw, v.key_ordinal) for v in result.parsed.visits)
+        self.assertEqual(got, [("2026-05-18", "Acme Test Co.", 0), ("2026-05-18", "Acme Test Co.", 1),
+                               ("2026-05-25", "Beta Test GmbH", 0)])
+
+    def test_same_rows_in_two_sheets_of_one_workbook_are_duplicates(self):
+        cells = dict(WEEKLY_HEADER)
+        cells.update({"E4": "Owner：", "F4": "Jason Zhao", "B9": "Jason Zhao", "D9": MON,
+                      "F9": "Acme Test Co.", "P9": "Call"})
+        p = write_book(self.path("Template for Weekly Sales Reporting 2026_Rep.xlsx"),
+                       {"CW20": {"cells": cells}, "CW21": {"cells": cells}})
+        result = read_paths([p])
+        self.assertEqual([v.sheet for v in result.parsed.visits], ["CW21"])
+        self.assertEqual(len(result.auto_accepted), 1)
+        self.assertEqual([(x["ignored_sheet"], x["used_sheet"]) for x in result.superseded], [("CW20", "CW21")])
+
+
+LUCAS_PLAN = {"C4": "Owner：", "D4": "Lucas Guo"}
+
+
+def lucas_week(path, plans, customer):
+    from tests.excel_book import LUCAS_HEADER
+    cells = dict(LUCAS_HEADER)
+    cells.update(LUCAS_PLAN)
+    for r, (day, plan) in zip(range(6, 12), plans):
+        cells.update({f"C{r}": day, f"D{r}": plan})
+    cells.update({"C15": datetime(2026, 3, 2), "E15": customer, "L15": "Phone call"})
+    return write_book(path, {"W01": {"cells": cells}})
+
+
+class WeekNotes(TmpCase):
+    def test_two_files_with_one_week_make_one_week_note(self):
+        a = lucas_week(self.path("Weekly Sales Planning and Reporting 2026_CW10-Lucas.xlsx"),
+                       [("Monday", "Alpha trip")], "Acme Test Co.")
+        b = lucas_week(self.path("Weekly Sales Planning and Reporting 2026_CW10-Lucas2.xlsx"),
+                       [("Monday", "Beta trip"), ("Tuesday", "Gamma")], "Beta Test GmbH")
+        result = read_paths([a, b])
+        (week,) = result.parsed.weeks
+        plans = {d.weekday: d.plan for d in week.days}
+        self.assertIn("Alpha trip", plans["Monday"])
+        self.assertIn("Beta trip", plans["Monday"])
+        self.assertEqual(plans["Tuesday"], "Gamma")
+
+
 if __name__ == "__main__":
     unittest.main()

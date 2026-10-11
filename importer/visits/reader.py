@@ -11,7 +11,7 @@ and a deadline in column L. The year is not on the sheet; it is the last
 """
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 
 import openpyxl
@@ -34,6 +34,19 @@ YELLOW_FILL = "FFFF00"
 # Rows 3-7 label their day "Monday", "Tue", ... ; the value is the offset from
 # that week's Monday.
 WEEKDAY_OFFSETS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
+
+def fold_name(name: str) -> str:
+    return re.sub(r"[\W_]+", "", (name or "").lower())
+
+
+def assign_ordinals(visits: list) -> None:
+    """Numbers visits that share owner, date and customer 0, 1, ... in the order given (one sheet)."""
+    seen: dict = {}
+    for v in visits:
+        n = seen.get(v.content_key, 0)
+        seen[v.content_key] = n + 1
+        v.key_ordinal = n
 
 
 @dataclass
@@ -71,10 +84,24 @@ class Visit:
     # Columns the mock layout does not have (WeChat, industry, competitor,
     # status ...), kept so the activity's raw row still holds every cell.
     extra: dict = field(default_factory=dict)
+    # Which of the visits with the same owner, date and customer this is, in sheet
+    # order from 0 (set by assign_ordinals once a whole sheet is read).
+    key_ordinal: int = 0
 
     @property
     def visit_key(self) -> str:
+        """Where the visit sits in the file; identifies it inside one run, never across files."""
         return f"{self.workbook}:{self.sheet}:{self.excel_row_start}"
+
+    @property
+    def content_key(self) -> tuple:
+        return (fold_name(self.owner), self.date_iso, fold_name(self.customer_raw))
+
+    @property
+    def source_id(self) -> str:
+        """The same visit in a later export of the file gets the same id, whatever the file is called."""
+        owner, day, customer = self.content_key
+        return f"visit:{owner}:{day}:{customer}:{self.key_ordinal}"
 
     @property
     def kind(self) -> str:
@@ -129,7 +156,34 @@ class Week:
 
     @property
     def week_key(self) -> str:
+        """Where the week sits in the file; identifies it inside one run only."""
         return f"{self.workbook}:{self.sheet}:week"
+
+    @property
+    def source_id(self) -> str:
+        return f"week:{fold_name(self.owner)}:{self.year}-W{self.cw}"
+
+
+def merge_weeks(weeks: list) -> list:
+    """One week per (owner, ISO year, CW): the plan and summary lines of later copies are
+    added to the first one's."""
+    merged: dict = {}
+    for w in weeks:
+        first = merged.get(w.source_id)
+        if first is None:
+            merged[w.source_id] = replace(w, days=[replace(d) for d in w.days], summary=list(w.summary))
+            continue
+        by_date = {d.date_iso: d for d in first.days}
+        for d in w.days:
+            mine = by_date.get(d.date_iso)
+            if mine is None:
+                first.days.append(replace(d))
+                by_date[d.date_iso] = first.days[-1]
+            elif d.plan and d.plan not in mine.plan:
+                mine.plan = f"{mine.plan}; {d.plan}" if mine.plan else d.plan
+        first.days.sort(key=lambda d: d.date_iso)
+        first.summary += [line for line in w.summary if line not in first.summary]
+    return list(merged.values())
 
 
 @dataclass
@@ -241,6 +295,7 @@ def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
             contact_raw=contact_raw, phone_raw=phone_raw, office_phone=office, email=email,
             purpose=purpose, notes=notes, order_in_day=order,
         ))
+    assign_ordinals(visits)
     return visits, parse_week(ws, workbook_name, year, cw, header_row)
 
 
@@ -263,4 +318,5 @@ def parse_paths(paths: list[str]) -> Parsed:
         one = parse_workbook(p)
         out.visits.extend(one.visits)
         out.weeks.extend(one.weeks)
+    out.weeks = merge_weeks(out.weeks)
     return out

@@ -193,10 +193,11 @@ def _file_problems(run) -> list[dict]:
         if st.read_sheets == 0 and not st.sheet_errors:
             out.append({"file": name, "why": "no visit list recognised (no sheet has the Date / Customer columns "
                                               "of a weekly report, a weekly plan or a visit-in-detail form)"})
-    pairs = Counter((x["ignored"], x["used"]) for x in run.superseded)
-    for (ignored, used), n in pairs.items():
-        out.append({"file": ignored, "why": f"{n} visit(s) ignored: the same visit is in the newer file {used}, "
-                                             "which was used instead"})
+    pairs = Counter((x["ignored"], x["ignored_sheet"], x["used"], x["used_sheet"]) for x in run.superseded)
+    for (ignored, ignored_sheet, used, used_sheet), n in pairs.items():
+        where = (f"sheet '{used_sheet}' of this file" if used == ignored else f"{used} (sheet '{used_sheet}')")
+        out.append({"file": ignored, "why": f"{n} visit(s) in sheet '{ignored_sheet}' ignored: the same visit is in "
+                                             f"{where}, which was used instead"})
     return out
 
 

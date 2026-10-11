@@ -1,6 +1,7 @@
 """Reads many workbooks into one list of visits. Byte-identical copies are read
-once; when several files carry the same visit (owner, date, customer) the copy in
-the newest file (higher CW in the name, then mtime) wins. A bad file or sheet is
+once; when several files carry the same visit (owner, date, customer) the copy that
+would be auto-accepted wins; among those the one whose own dates match its file-name and
+sheet CW (a renamed stale copy never does), then the newest file (higher CW, then mtime). A bad file or sheet is
 recorded and the run goes on. Company matching runs only when excel/companies.py
 exists."""
 import functools
@@ -10,9 +11,11 @@ import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
-from visits.reader import Parsed, Visit
+from datetime import date
 
-from .readers import ReviewItem, read_sheet
+from visits.reader import Parsed, Visit, assign_ordinals, fold_name, merge_weeks
+
+from .readers import ReviewItem, _sheet_cw, read_sheet
 from .sheet import load
 
 IMPORTER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,7 +50,8 @@ class RunResult:
     auto_accepted: set = field(default_factory=set)  # visit_key values
     visit_family: dict = field(default_factory=dict)  # visit_key -> layout
     review_by_visit: dict = field(default_factory=dict)  # visit_key -> set of review reasons
-    # visits left out because a newer file holds the same one: [{"date", "customer", "ignored", "used"}]
+    # visits left out because another file or sheet holds the same one:
+    # [{"date", "customer", "ignored", "ignored_sheet", "used", "used_sheet"}]
     superseded: list = field(default_factory=list)
 
 
@@ -58,16 +62,33 @@ class _Read:
     cw: int
     mtime: float
     visit: Visit
+    sheet: str = ""
+    sheet_cw: int | None = None  # None: the sheet name carries no week (or does not count, as in the lucas layout)
+    eligible: bool = False  # would be auto-accepted: has owner, date, customer and no blocking review reason
+
+    @property
+    def week_ok(self) -> bool:
+        """The visit's date lies in the week the file name and the sheet say."""
+        if not self.visit.date_iso:
+            return False
+        week = date.fromisoformat(self.visit.date_iso).isocalendar()[1]
+        return all(week == cw for cw in (self.cw or None, self.sheet_cw) if cw)
 
 
 def _fold(name: str) -> str:
     return re.sub(r"[\W_]+", "", name.lower())
 
 
-def _key(visit):
+def _key(r):
+    """What makes two reads the same visit: owner, day, customer and which of that day's visits it is."""
+    visit = r.visit
     if not visit.date_iso or not visit.customer_raw:
         return None
-    return (visit.owner, visit.date_iso, _fold(visit.customer_raw))
+    return (visit.owner, visit.date_iso, _fold(visit.customer_raw), visit.key_ordinal)
+
+
+def _winner(candidates):
+    return max(candidates, key=lambda r: (r.eligible, r.week_ok, r.cw, r.mtime, r.path, r.sheet))
 
 
 def _unique(paths, skipped):
@@ -189,7 +210,9 @@ def read_paths(paths) -> RunResult:
                 continue
             layouts[layout] += 1
             stat.read_sheets += 1
-            reads += [_Read(path, layout, _file_cw(path), _mtime(path), v) for v in visits]
+            assign_ordinals(visits)
+            sheet_cw = None if layout == "lucas" else _sheet_cw(sheet.name)
+            reads += [_Read(path, layout, _file_cw(path), _mtime(path), v, sheet.name, sheet_cw) for v in visits]
             weeks += [(path, week)] if week else []
             items += [(item, None) for item in review]
         stat.family = layouts.most_common(1)[0][0] if layouts else "none"
@@ -197,18 +220,25 @@ def read_paths(paths) -> RunResult:
     keys = _attach([item for item, _ in items], reads)
     items = [(item, key) for (item, _), key in zip(items, keys)]
 
-    best = {}
-    for r in reads:
-        key = _key(r.visit)
+    # Reasons known before company matching decide which copy of a visit may be the one kept.
+    early = defaultdict(set)
+    for item, key in items:
         if key is not None:
-            rank = (r.cw, r.mtime, r.path)
-            if key not in best or rank > best[key][0]:
-                best[key] = (rank, r.path)
-    kept = [r for r in reads if _key(r.visit) is None or best[_key(r.visit)][1] == r.path]
+            early[key].add(item.reason)
+    for r in reads:
+        v = r.visit
+        r.eligible = bool(v.date_iso and v.owner and v.customer_raw and early[v.visit_key] <= AUTO_OK)
+    groups = defaultdict(list)
+    for r in reads:
+        if _key(r) is not None:
+            groups[_key(r)].append(r)
+    best = {key: _winner(group) for key, group in groups.items()}
+    kept = [r for r in reads if _key(r) is None or best[_key(r)] is r]
     kept_keys = {r.visit.visit_key for r in kept}
     superseded = [{"date": r.visit.date_iso, "customer": r.visit.customer_raw,
-                   "ignored": os.path.basename(r.path), "used": os.path.basename(best[_key(r.visit)][1])}
-                  for r in reads if _key(r.visit) is not None and best[_key(r.visit)][1] != r.path]
+                   "ignored": os.path.basename(r.path), "ignored_sheet": r.sheet,
+                   "used": os.path.basename(best[_key(r)].path), "used_sheet": best[_key(r)].sheet}
+                  for r in reads if _key(r) is not None and best[_key(r)] is not r]
     items += _company_items(kept)
 
     by_visit = defaultdict(set)
@@ -225,10 +255,11 @@ def read_paths(paths) -> RunResult:
         stat.visits = per_path[stat.path]
         stat.stale_copy = stat.path in read_paths_set and stat.visits == 0
 
-    stale = {s.path for s in stats if s.stale_copy}
+    kept_sheets = {(r.path, r.sheet) for r in kept}
+    stale = {(r.path, r.sheet) for r in reads} - kept_sheets
     return RunResult(
         parsed=Parsed(visits=[r.visit for r in kept],
-                      weeks=[w for p, w in weeks if p not in stale]),
+                      weeks=merge_weeks([w for p, w in weeks if (p, w.sheet) not in stale])),
         review=[item for item, key in items if key is None or key in kept_keys],
         skipped_files=skipped,
         per_file_stats=stats,
