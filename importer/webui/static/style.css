@@ -651,6 +651,8 @@ input:focus { outline: none; background: var(--panel); box-shadow: inset 0 0 0 2
 .mtab-panel td { white-space: nowrap; }
 .mtab-panel td:first-child { white-space: normal; min-width: 10rem; }
 
+#upload-error, #unsure-warning { white-space: pre-line; }
+
 /* ---- reading review (review.js) ---- */
 .use-current { margin-top: 1.25rem; text-align: center; }
 .use-current .hint { margin-top: .5rem; }

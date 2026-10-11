@@ -18,6 +18,7 @@ from .sheet import load
 IMPORTER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILE_CW = re.compile(r"CW\s*(\d{1,2})", re.I)
 AUTO_OK = {"due_decimal", "company_maybe_new"}  # review reasons that do not keep a visit out of the auto-accepted set
+UNRECOGNISED_MIN_CELLS = 10  # fewer cells than this is an empty template sheet, not a lost visit list
 COMPANY_OK = 0.9
 # Below this best-candidate score a customer is imported as a new company and only listed
 # for a merge check: a duplicate is one "Merge company" click, a wrong merge is silent.
@@ -32,6 +33,8 @@ class FileStat:
     read_sheets: int = 0
     visits: int = 0
     error: str = ""
+    unrecognised: list = field(default_factory=list)  # sheets with data but no visit layout, in a file where others were read
+    sheet_errors: list = field(default_factory=list)  # [(sheet name, reason)]: sheets that raised while being read
     stale_copy: bool = False
 
 
@@ -44,6 +47,8 @@ class RunResult:
     auto_accepted: set = field(default_factory=set)  # visit_key values
     visit_family: dict = field(default_factory=dict)  # visit_key -> layout
     review_by_visit: dict = field(default_factory=dict)  # visit_key -> set of review reasons
+    # visits left out because a newer file holds the same one: [{"date", "customer", "ignored", "used"}]
+    superseded: list = field(default_factory=list)
 
 
 @dataclass
@@ -149,6 +154,13 @@ def _mtime(path):
         return 0.0
 
 
+def _plain_error(exc, path, sheet_name) -> str:
+    """The exception's message without the "file/sheet:" prefix the readers put on it."""
+    text = str(exc) or type(exc).__name__
+    prefix = f"{os.path.basename(path)}/{sheet_name}: "
+    return text[len(prefix):] if text.startswith(prefix) else text
+
+
 def read_paths(paths) -> RunResult:
     skipped, stats, reads, weeks, items = [], [], [], [], []
     for path in _unique(paths, skipped):
@@ -158,7 +170,7 @@ def read_paths(paths) -> RunResult:
             sheets = load(path)
         except Exception as exc:  # a corrupt or unsupported workbook must not stop the run
             stat.error = f"{type(exc).__name__}: {exc}"
-            skipped.append({"file": path, "error": stat.error})
+            skipped.append({"file": path, "error": f"could not be read: {stat.error}"})
             continue
         stat.sheets = len(sheets)
         layouts = Counter()
@@ -167,8 +179,11 @@ def read_paths(paths) -> RunResult:
                 layout, visits, week, review = read_sheet(sheet, path)
             except Exception as exc:
                 stat.error = (stat.error + "; " if stat.error else "") + f"{sheet.name}: {exc}"
+                stat.sheet_errors.append((sheet.name, _plain_error(exc, path, sheet.name)))
                 continue
             if layout is None:
+                if len(sheet.grid) >= UNRECOGNISED_MIN_CELLS:
+                    stat.unrecognised.append(sheet.name)
                 continue
             layouts[layout] += 1
             stat.read_sheets += 1
@@ -189,6 +204,9 @@ def read_paths(paths) -> RunResult:
                 best[key] = (rank, r.path)
     kept = [r for r in reads if _key(r.visit) is None or best[_key(r.visit)][1] == r.path]
     kept_keys = {r.visit.visit_key for r in kept}
+    superseded = [{"date": r.visit.date_iso, "customer": r.visit.customer_raw,
+                   "ignored": os.path.basename(r.path), "used": os.path.basename(best[_key(r.visit)][1])}
+                  for r in reads if _key(r.visit) is not None and best[_key(r.visit)][1] != r.path]
     items += _company_items(kept)
 
     by_visit = defaultdict(set)
@@ -215,6 +233,7 @@ def read_paths(paths) -> RunResult:
         auto_accepted=accepted,
         visit_family={r.visit.visit_key: r.layout for r in kept},
         review_by_visit={k: v for k, v in by_visit.items() if k in kept_keys},
+        superseded=superseded,
     )
 
 

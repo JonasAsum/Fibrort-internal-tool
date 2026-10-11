@@ -67,3 +67,22 @@ class Upload(TmpCase):
         name = "Weekly Sales Planning and Reporting 2026_CW10-Lucas.xlsx"
         d = self.upload(lucas_book(self.path("d.xlsx")), name).get_json()
         self.assertGreater(d["found"], 0)
+
+    def test_workbook_without_any_visit_list_is_refused_with_a_reason_and_keeps_nothing(self):
+        from tests.excel_book import write_book
+        p = write_book(self.path("customers.xlsx"), {"List": {"cells": {"A1": "Customer Code", "B1": "Name"}}})
+        r = self.upload(p, "customers.xlsx")
+        self.assertEqual(r.status_code, 422)
+        self.assertIn("No visit list recognised", r.get_json()["error"])
+        self.assertIn("customers.xlsx", r.get_json()["error"])
+        self.assertFalse(self.client.get("/api/dataset").get_json()["loaded"])
+
+    def test_same_visit_in_two_files_is_reported(self):
+        from tests.e2e.test_reasons import NAME21, NAME22, weekly
+        self.upload(weekly(self.path("a.xlsx")), NAME21)
+        a, b = weekly(self.path("a.xlsx")), weekly(self.path("b.xlsx"), sheet="CW22")
+        with open(a, "rb") as fa, open(b, "rb") as fb:
+            data = {"files": [(io.BytesIO(fa.read()), NAME21), (io.BytesIO(fb.read()), NAME22)]}
+        d = self.client.post("/api/upload", data=data, content_type="multipart/form-data").get_json()
+        self.assertEqual(d["found"], 1)
+        self.assertTrue(any(NAME21 == f["file"] and NAME22 in f["why"] for f in d["skipped_files"]), d["skipped_files"])

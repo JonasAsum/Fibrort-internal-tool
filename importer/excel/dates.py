@@ -102,7 +102,11 @@ def parse_date(value, ref: date | None, year: int | None = None, lookup=None):
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         if value < 1:
             return None, "empty"
-        return _stamp(from_excel(value), ref, year)
+        try:
+            stamp = from_excel(value)
+        except (OverflowError, ValueError, TypeError):  # 1e30 and the like are not a date
+            return None, "unparsed"
+        return _stamp(stamp, ref, year)
     text = "" if value is None else re.sub(r"\s+", " ", str(value)).strip()
     if text.startswith("="):
         return _formula(text, ref, year, lookup)

@@ -161,12 +161,16 @@ dropzone.addEventListener("drop", (e) => uploadFiles(e.dataTransfer.files));
 fileInput.addEventListener("change", () => uploadFiles(fileInput.files));
 
 async function uploadFiles(fileList) {
-  const files = Array.from(fileList).filter((f) => f.name.toLowerCase().endsWith(".xlsx"));
+  const all = Array.from(fileList);
+  const files = all.filter((f) => /\.xlsx?$/i.test(f.name));
   const errBox = $("#upload-error");
   errBox.classList.add("hidden");
-  if (!files.length) {
-    errBox.textContent = "Please choose one or more .xlsx files.";
+  if (!files.length || files.length < all.length) {
+    // Never drop a file silently: say which ones are not Excel and upload nothing until the choice is fixed.
+    const bad = all.filter((f) => !files.includes(f)).map((f) => f.name).join(", ");
+    errBox.textContent = `Please choose Excel files (.xlsx or .xls) only. Not an Excel file: ${bad || "(nothing chosen)"}`;
     errBox.classList.remove("hidden");
+    fileInput.value = "";
     return;
   }
   dropzone.classList.add("dragover");
@@ -220,7 +224,7 @@ function renderReview(d) {
       .map((r) => `${r.date || "no date"} · ${r.customer || "no customer"} — ${r.why}`).join("\n");
     const skipped = (d.skipped_files || []).map((f) => `${f.file}: ${f.why}`).join("\n");
     unsure.textContent = (d.unsure ? `${d.unsure} visit(s) found but not imported until checked: ${reasons}\n${rows}` : "")
-      + (skipped ? `\nFiles not read: \n${skipped}` : "");
+      + (skipped ? `\nFiles and sheets not used:\n${skipped}` : "");
   } else {
     unsure.classList.add("hidden");
   }
@@ -402,11 +406,22 @@ $("#btn-import-another").addEventListener("click", async () => {
 });
 $("#btn-back-to-review").addEventListener("click", () => goToStep(2));
 
+// ---- stale-server guard: warn when the files on disk are newer than the code this server runs ----
+
+async function checkVersion() {
+  try {
+    const v = await api("/api/version");
+    $("#stale-banner").classList.toggle("hidden", !v.stale);
+  } catch (e) { /* server gone: the other calls will say so */ }
+}
+setInterval(checkVersion, 10000);
+
 // ---- init ----
 
 (async function init() {
   await loadConfigIntoModal();
   testConnection(); // fire and forget - never blocks the UI
+  checkVersion();
   const d = await api("/api/dataset");
   if (d.loaded) {
     renderReview(d);

@@ -102,3 +102,9 @@ class OldYearAndPlaceholders(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_absurd_number_in_a_date_cell_is_unparsed_not_a_crash():
+    from excel.dates import parse_date
+    assert parse_date(10 ** 30, None, 2026) == (None, "unparsed")
+    assert parse_date(1e300, None, 2026) == (None, "unparsed")

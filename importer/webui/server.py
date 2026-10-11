@@ -14,6 +14,7 @@ import sys
 import threading
 import time
 import uuid
+from collections import Counter
 from dataclasses import asdict
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -31,8 +32,9 @@ from excel_margince import accepted  # noqa: E402
 
 app = Flask(__name__, static_folder="static")
 
-CONFIG_PATH = os.path.join(HERE, ".webui_config.json")
-UPLOAD_DIR = os.path.join(HERE, ".uploads")
+# IMPORTER_CONFIG / IMPORTER_UPLOAD_DIR let a test server keep its own state apart from the real one.
+CONFIG_PATH = os.environ.get("IMPORTER_CONFIG") or os.path.join(HERE, ".webui_config.json")
+UPLOAD_DIR = os.environ.get("IMPORTER_UPLOAD_DIR") or os.path.join(HERE, ".uploads")
 
 DEFAULT_CONFIG = {"base_url": "http://localhost:8080", "email": "admin@demo.test", "password": "demo-password-123"}
 
@@ -57,6 +59,38 @@ def _client() -> MargenceClient:
     c = MargenceClient(cfg["base_url"])
     c.login(cfg["email"], cfg["password"])
     return c
+
+
+SKIP_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".uploads"}
+
+
+def _code_state() -> dict:
+    """The checkout's git HEAD and the newest mtime of importer/**/*.py right now."""
+    try:
+        head = subprocess.run(["git", "-C", ROOT, "rev-parse", "HEAD"], capture_output=True, text=True,
+                              timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        head = ""
+    newest = 0.0
+    for dirpath, dirs, names in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith("staging")]
+        for n in names:
+            if n.endswith(".py"):
+                try:
+                    newest = max(newest, os.path.getmtime(os.path.join(dirpath, n)))
+                except OSError:
+                    pass
+    return {"head": head, "newest_py_mtime": newest}
+
+
+STARTED = _code_state()  # what this process was started from
+
+
+@app.get("/api/version")
+def version():
+    """Whether the files on disk moved on after this server started (it would run older code)."""
+    now = _code_state()
+    return jsonify({"started": STARTED, "current": now, "stale": now != STARTED})
 
 
 @app.get("/")
@@ -140,6 +174,31 @@ REASON_TEXT = {
 }
 
 
+def _file_problems(run) -> list[dict]:
+    """Plain-language notes on every file or sheet that did not (fully) become visits."""
+    out, named = [], set()
+    for x in run.skipped_files:
+        named.add(x["file"])
+        out.append({"file": os.path.basename(x["file"]), "why": x["error"]})
+    for st in run.per_file_stats:
+        name = os.path.basename(st.path)
+        if st.path in named:
+            continue
+        for sheet, why in st.sheet_errors:
+            out.append({"file": name, "why": f"sheet '{sheet}' could not be read: {why}"})
+        if st.read_sheets:
+            out += [{"file": name, "why": f"sheet '{sheet}' was not used: no visit list recognised in it"}
+                    for sheet in st.unrecognised]
+        if st.read_sheets == 0 and not st.sheet_errors:
+            out.append({"file": name, "why": "no visit list recognised (no sheet has the Date / Customer columns "
+                                              "of a weekly report, a weekly plan or a visit-in-detail form)"})
+    pairs = Counter((x["ignored"], x["used"]) for x in run.superseded)
+    for (ignored, used), n in pairs.items():
+        out.append({"file": ignored, "why": f"{n} visit(s) ignored: the same visit is in the newer file {used}, "
+                                             "which was used instead"})
+    return out
+
+
 def _unsure_summary(run) -> dict:
     """Visits found in the file but left out of the import until someone checks them."""
     if run is None:
@@ -156,12 +215,21 @@ def _unsure_summary(run) -> dict:
                      "why": "; ".join(REASON_TEXT.get(r, r) for r in reasons)})
     return {"found": len(run.parsed.visits), "unsure": len(unsure), "unsure_reasons": counts,
             "unsure_rows": rows[:50],
-            "skipped_files": [{"file": os.path.basename(x["file"]), "why": x["error"]} for x in run.skipped_files]}
+            "skipped_files": _file_problems(run)}
 
 
 @app.get("/api/dataset")
 def get_dataset():
     return jsonify(_dataset_summary())
+
+
+EXCEL_TYPES = (".xlsx", ".xls")
+
+
+def _clear_uploads():
+    for kind in EXCEL_TYPES:
+        for stale in glob.glob(os.path.join(UPLOAD_DIR, "*" + kind)):
+            os.remove(stale)
 
 
 @app.post("/api/upload")
@@ -171,23 +239,29 @@ def upload():
         return jsonify({"error": "no files in the request"}), 400
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    for stale in glob.glob(os.path.join(UPLOAD_DIR, "*.xlsx")):
-        os.remove(stale)
+    _clear_uploads()
 
     saved_paths, names = [], []
     for f in files:
-        if not f.filename.lower().endswith(".xlsx"):
-            return jsonify({"error": f"{f.filename} is not an .xlsx file"}), 400
-        path = os.path.join(UPLOAD_DIR, f.filename)
+        name = os.path.basename(f.filename.replace("\\", "/"))
+        if not name.lower().endswith(EXCEL_TYPES):
+            return jsonify({"error": f"{name} is not an Excel file (.xlsx or .xls)"}), 400
+        path = os.path.join(UPLOAD_DIR, name)
         f.save(path)
         saved_paths.append(path)
-        names.append(f.filename)
+        names.append(name)
 
     try:
         run = read_paths(saved_paths)
         parsed = accepted(run)
     except Exception as e:
         return jsonify({"error": f"could not parse the workbook(s): {e}"}), 400
+
+    if not run.parsed.visits:  # never a review page of zeros: say why nothing was found
+        CURRENT.update(files=[], parsed=None, result=None, run=None)
+        why = "\n".join(f"{p['file']}: {p['why']}" for p in _file_problems(run))
+        return jsonify({"error": "No visit list recognised in what you uploaded; nothing was counted or imported."
+                                 + (f"\n{why}" if why else "")}), 422
 
     CURRENT["files"] = names
     CURRENT["run"] = run
@@ -199,8 +273,7 @@ def upload():
 @app.post("/api/clear")
 def clear():
     CURRENT.update(files=[], parsed=None, result=None, run=None)
-    for stale in glob.glob(os.path.join(UPLOAD_DIR, "*.xlsx")):
-        os.remove(stale)
+    _clear_uploads()
     return jsonify({"ok": True})
 
 
@@ -239,7 +312,8 @@ def commit():
 
     def work():
         try:
-            report = pipeline.run(client, parsed, result, on_progress=on_progress)
+            opts = pipeline.Options(source_system=os.environ.get("IMPORTER_SOURCE_SYSTEM") or "visitlist")
+            report = pipeline.run(client, parsed, result, opts, on_progress=on_progress)
             JOBS[job_id].update(status="done", result={
                 **asdict(report),
                 "activities_skipped_no_date": len(report.activities_skipped_no_date),
@@ -710,4 +784,7 @@ def review_file(slug, alias):
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 5055)), debug=False, threaded=True)
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 5055)))
+    app.run(host="127.0.0.1", port=ap.parse_args().port, debug=False, threaded=True)

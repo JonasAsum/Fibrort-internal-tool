@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+<div id="stale-banner" class="warning hidden" role="alert">The server runs older code than the files on disk &mdash; restart it (<code>cd importer &amp;&amp; .venv/bin/python -m webui.server</code>) before trusting what this page shows.</div>
 <header>
   <div class="brand">
     <div class="brand-mark">V</div>
@@ -49,8 +50,8 @@
     <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Choose visit-list workbooks to upload">
       <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
       <p class="dz-title">Drop your visit-list workbook(s) here</p>
-      <p class="dz-sub">or click to browse &mdash; .xlsx, one or several at once</p>
-      <input id="file-input" type="file" accept=".xlsx" multiple hidden>
+      <p class="dz-sub">or click to browse &mdash; .xlsx or .xls, one or several at once</p>
+      <input id="file-input" type="file" accept=".xlsx,.xls" multiple hidden>
     </div>
     <div id="upload-error" class="inline-error hidden"></div>
   </section>
