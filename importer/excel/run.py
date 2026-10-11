@@ -175,6 +175,8 @@ def read_paths(paths) -> RunResult:
         stat.sheets = len(sheets)
         layouts = Counter()
         for sheet in sheets:
+            if sheet.cut:
+                stat.sheet_errors.append((sheet.name, sheet.cut))
             try:
                 layout, visits, week, review = read_sheet(sheet, path)
             except Exception as exc:

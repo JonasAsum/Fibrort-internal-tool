@@ -76,5 +76,24 @@ class RunFixes(TmpCase):
         self.assertEqual(run._master.cache_info().misses, 1)
 
 
+class SheetLimits(TmpCase):
+    def test_sheet_beyond_the_row_cap_is_reported_not_silently_cut(self):
+        from excel import sheet as sheet_mod
+        self.assertEqual(sheet_mod.MAX_ROW, 20000)
+        cells = dict(WEEKLY_HEADER)
+        cells.update({"E4": "Owner：", "F4": "Jason Zhao"})
+        for i in range(9, 40):
+            cells.update({f"B{i}": "Jason Zhao", f"D{i}": datetime(2026, 5, 18), f"F{i}": f"Cust {i} Test Co."})
+        path = write_book(self.path("Template for Weekly Sales Reporting 2026_CW21_Test Rep.xlsx"),
+                          {"CW21": {"cells": cells}})
+        old = sheet_mod.MAX_ROW
+        sheet_mod.MAX_ROW = 20
+        self.addCleanup(setattr, sheet_mod, "MAX_ROW", old)
+        result = read_paths([path])
+        (stat,) = result.per_file_stats
+        self.assertTrue(any(name == "CW21" and "20" in why and "rows" in why for name, why in stat.sheet_errors),
+                        stat.sheet_errors)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -5,7 +5,7 @@ new data. Formulas are read lazily, only when a cached value is missing."""
 import openpyxl
 
 MAX_COL = 40
-MAX_ROW = 1000
+MAX_ROW = 20000
 
 
 class _Formulas:
@@ -23,7 +23,8 @@ class _Formulas:
 
 
 class Sheet:
-    def __init__(self, name, max_row, max_col, grid, top, formulas=None, ws=None):
+    def __init__(self, name, max_row, max_col, grid, top, formulas=None, ws=None, cut=""):
+        self.cut = cut  # why part of the sheet was left out (rows or columns beyond the caps); "" when all was read
         self.name = name
         self.max_row = max_row
         self.max_col = max_col
@@ -43,6 +44,16 @@ class Sheet:
         if self._formulas is None:
             return None
         return self._formulas.cell(self.name, r, c)
+
+
+def _cut_note(rows, cols):
+    parts = []
+    if rows:
+        parts.append(f"rows beyond {MAX_ROW}")
+    if cols:
+        parts.append(f"columns beyond {MAX_COL}")
+    return ("only the first %d rows and %d columns were read: the sheet has data in %s" %
+            (MAX_ROW, MAX_COL, " and ".join(parts))) if parts else ""
 
 
 def load(path):
@@ -66,7 +77,10 @@ def load(path):
                 for c in range(rng.min_col, min(rng.max_col, max_col) + 1):
                     if (r, c) != (rng.min_row, rng.min_col):
                         top[(r, c)] = (rng.min_row, rng.min_col)
-        out.append(Sheet(ws.title, max_row, max_col, grid, top, formulas, ws))
+        beyond = [cell for (r, c), cell in ws._cells.items()
+                  if (r > MAX_ROW or c > MAX_COL) and cell.value is not None]
+        cut = _cut_note(any(cell.row > MAX_ROW for cell in beyond), any(cell.column > MAX_COL for cell in beyond))
+        out.append(Sheet(ws.title, max_row, max_col, grid, top, formulas, ws, cut))
     return out
 
 
@@ -97,5 +111,9 @@ def _load_xls(path):
                 for c in range(clo, min(chi, max_col)):
                     if (r, c) != (rlo, clo):
                         top[(r + 1, c + 1)] = (rlo + 1, clo + 1)
-        out.append(Sheet(sh.name, max_row, max_col, grid, top))
+        empty = (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK)
+        rows_cut = any(t not in empty for r in range(MAX_ROW, sh.nrows) for t in sh.row_types(r))
+        cols_cut = any(t not in empty for r in range(min(sh.nrows, MAX_ROW))
+                       for t in sh.row_types(r, start_colx=MAX_COL))
+        out.append(Sheet(sh.name, max_row, max_col, grid, top, cut=_cut_note(rows_cut, cols_cut)))
     return out
