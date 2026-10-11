@@ -54,15 +54,17 @@ class Upload(TmpCase):
         self.assertEqual(r.status_code, 200, r.get_json())
         self.assertEqual(len(server.CURRENT["parsed"].visits), 1)
 
-    def test_lucas_copy_named_for_another_week_shows_its_visits_as_unsure(self):
-        # Like "…CW13-Lucas2.xlsx" holding CW10's visits: found, shown, not dropped.
-        name = "Weekly Sales Planning and Reporting 2026_CW13-Lucas2.xlsx"
-        r = self.upload(lucas_book(self.path("c.xlsx")), name)
-        self.assertEqual(r.status_code, 200, r.get_json())
-        d = r.get_json()
-        self.assertGreater(d["found"], 0)
-        self.assertEqual(d["found"], d["visits"] + d["unsure"])
-        self.assertTrue(any("week" in why for why in d["unsure_reasons"]))
+    def test_lucas_file_named_for_another_week_imports_by_its_own_data(self):
+        # Like "…CW12-Lucas.xlsx" / "…CW13-Lucas2.xlsx": the sheet says CW10 and the rows are
+        # CW10 dates. The data in the file is the truth, the file name is not: to import.
+        for name in ("Weekly Sales Planning and Reporting 2026_CW12-Lucas.xlsx",
+                     "Weekly Sales Planning and Reporting 2026_CW13-Lucas2.xlsx"):
+            with self.subTest(name=name):
+                r = self.upload(lucas_book(self.path(f"{name[-12:]}")), name)
+                self.assertEqual(r.status_code, 200, r.get_json())
+                d = r.get_json()
+                self.assertGreater(d["visits"], 0)
+                self.assertEqual(d["unsure"], 0, d["unsure_reasons"])
 
     def test_lucas_layout_in_its_own_week_is_found(self):
         name = "Weekly Sales Planning and Reporting 2026_CW10-Lucas.xlsx"

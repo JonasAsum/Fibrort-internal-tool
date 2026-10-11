@@ -98,11 +98,13 @@ def test_huge_number_in_date_cell_does_not_hide_the_sheet(page, server, tmp_path
     assert re.search(r"no readable date", text)
 
 
-def test_lucas_copy_of_another_week(page, server, tmp_path):
+def test_lucas_file_named_for_another_week_imports_by_its_data(page, server, tmp_path):
+    # The sheet's own CW label and row dates decide, never the file name.
     p = tmp_path / "Weekly Sales Planning and Reporting 2026_CW13-Lucas2.xlsx"
     lucas_book(str(p))
-    text = shown(page, server, p)
-    assert re.search(r"not in the week", text)
+    shown(page, server, p)
+    s = stats(page)
+    assert s["visits"] > 0 and s["unsure"] == 0, s
 
 
 def test_filled_sheet_without_a_visit_layout_is_named(page, server, tmp_path):

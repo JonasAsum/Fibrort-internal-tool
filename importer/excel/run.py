@@ -20,7 +20,7 @@ from .sheet import load
 
 IMPORTER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILE_CW = re.compile(r"CW\s*(\d{1,2})", re.I)
-AUTO_OK = {"due_decimal", "company_maybe_new"}  # review reasons that do not keep a visit out of the auto-accepted set
+AUTO_OK = {"due_decimal", "company_maybe_new", "week_label_differs"}  # review reasons that do not keep a visit out of the auto-accepted set
 UNRECOGNISED_MIN_CELLS = 10  # fewer cells than this is an empty template sheet, not a lost visit list
 COMPANY_OK = 0.9
 # Below this best-candidate score a customer is imported as a new company and only listed

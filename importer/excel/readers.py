@@ -129,6 +129,20 @@ def _file_cw(path: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def _timing_cw(sheet) -> int | None:
+    """The week the sheet itself names: the cell right of a "Timing" label in the top rows
+    ("Timing： CW10"). The data inside the file is the truth, not its file name."""
+    for r in range(1, 9):
+        for c in range(1, 20):
+            label = str(sheet.value(r, c) or "").strip().lower()
+            if label.startswith("timing"):
+                for cc in range(c, c + 4):
+                    m = re.search(r"(?:cw|w)\s*(\d{1,2})", str(sheet.value(r, cc) or ""), re.I)
+                    if m:
+                        return int(m.group(1))
+    return None
+
+
 def _monday(year: int, cw: int | None) -> date | None:
     if not cw:
         return None
@@ -245,7 +259,10 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
     elif date_flag in ("ambiguous", "range"):
         review.append(ctx.review(sheet.name, start, "date", date_raw, f"{date_flag}_date"))
     if date_iso and cw_hint and abs(date.fromisoformat(date_iso).isocalendar()[1] - cw_hint) > 1:
-        review.append(ctx.review(sheet.name, start, "date", date_raw, "week_mismatch"))
+        # Lucas files carry a stale "Timing" label; the row dates are the truth, so there it is
+        # only a note. A weekly sheet named for another week still waits for a check.
+        reason = "week_label_differs" if ctx.family == "lucas" else "week_mismatch"
+        review.append(ctx.review(sheet.name, start, "date", date_raw, reason))
     elif date_iso:
         review += _year_items(ctx, sheet.name, start, date_raw, date_iso)
     if not name:
@@ -294,7 +311,7 @@ def read_weekly(sheet, ctx, owner, found):
 
 def read_lucas(sheet, ctx, owner, found):
     row, cols = found
-    cw = _file_cw(ctx.path)  # the Timing cell is stale in some files; the file name is not
+    cw = _timing_cw(sheet)  # the sheet's own week label; the row dates decide in the end
     visits, review = _read_blocks(sheet, ctx, row, cols, owner, cw)
     first = next((v for v in visits if v.date_iso), None)
     week = None
@@ -537,7 +554,7 @@ def read_sheet(sheet: Sheet, path: str):
         return None, [], None, []
     folder_owner = (normalize_owner(os.path.basename(os.path.dirname(os.path.abspath(path))))
                     or owner_from_filename(path))
-    cw = _file_cw(path) if layout == "lucas" else _sheet_cw(sheet.name) or _file_cw(path)
+    cw = _timing_cw(sheet) if layout == "lucas" else _sheet_cw(sheet.name) or _file_cw(path)
     year, known = _year_for(path, cw)
     ctx = Ctx(path=path, family=layout, year=year, folder_owner=folder_owner, year_known=known)
     if layout == "mock":
