@@ -43,6 +43,7 @@ class RunResult:
     per_file_stats: list = field(default_factory=list)
     auto_accepted: set = field(default_factory=set)  # visit_key values
     visit_family: dict = field(default_factory=dict)  # visit_key -> layout
+    review_by_visit: dict = field(default_factory=dict)  # visit_key -> set of review reasons
 
 
 @dataclass
@@ -213,6 +214,7 @@ def read_paths(paths) -> RunResult:
         per_file_stats=stats,
         auto_accepted=accepted,
         visit_family={r.visit.visit_key: r.layout for r in kept},
+        review_by_visit={k: v for k, v in by_visit.items() if k in kept_keys},
     )
 
 

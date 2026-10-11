@@ -26,7 +26,8 @@ if ROOT not in sys.path:  # also allow `python webui/server.py`
 from common.client import ApiError, MargenceClient  # noqa: E402
 from visits import pipeline  # noqa: E402
 from visits.match import match  # noqa: E402
-from visits.reader import parse_paths  # noqa: E402
+from excel.run import read_paths  # noqa: E402
+from excel_margince import accepted  # noqa: E402
 
 app = Flask(__name__, static_folder="static")
 
@@ -35,7 +36,7 @@ UPLOAD_DIR = os.path.join(HERE, ".uploads")
 
 DEFAULT_CONFIG = {"base_url": "http://localhost:8080", "email": "admin@demo.test", "password": "demo-password-123"}
 
-CURRENT = {"files": [], "parsed": None, "result": None}
+CURRENT = {"files": [], "parsed": None, "result": None, "run": None}
 JOBS: dict[str, dict] = {}
 
 
@@ -121,7 +122,41 @@ def _dataset_summary() -> dict:
              for c in result.contacts.values() if c.company_key in result.companies],
             key=lambda r: (r["company"], r["full_name"])),
         "decisions": [d for d in result._namer.decisions if d["why"].startswith("kept separate")],
+        **_unsure_summary(CURRENT.get("run")),
     }
+
+
+# Plain words for the review-queue reasons that keep a visit out of the import.
+REASON_TEXT = {
+    "week_mismatch": "the visit dates are not in the week the file or sheet is named after (often a copy of an older report)",
+    "no_date": "no readable date",
+    "ambiguous_date": "the date could be day/month or month/day",
+    "range_date": "the date is a range",
+    "no_customer": "no customer",
+    "no_owner": "no sales rep",
+    "company": "the customer name is close to more than one company in the customer list",
+    "customer_split": "unsure where the customer name ends and the address starts",
+    "participants": "the participants could not be matched to the company",
+}
+
+
+def _unsure_summary(run) -> dict:
+    """Visits found in the file but left out of the import until someone checks them."""
+    if run is None:
+        return {"found": 0, "unsure": 0, "unsure_reasons": {}, "unsure_rows": [], "skipped_files": []}
+    reasons_by_visit = run.review_by_visit
+    unsure = [v for v in run.parsed.visits if v.visit_key not in run.auto_accepted]
+    counts = {}
+    rows = []
+    for v in unsure:
+        reasons = sorted(reasons_by_visit.get(v.visit_key, set()) - {"due_decimal", "company_maybe_new"}) or ["unsure"]
+        for r in reasons:
+            counts[REASON_TEXT.get(r, r)] = counts.get(REASON_TEXT.get(r, r), 0) + 1
+        rows.append({"visit": v.visit_key, "date": v.date_iso or v.date_raw, "customer": v.customer_raw,
+                     "why": "; ".join(REASON_TEXT.get(r, r) for r in reasons)})
+    return {"found": len(run.parsed.visits), "unsure": len(unsure), "unsure_reasons": counts,
+            "unsure_rows": rows[:50],
+            "skipped_files": [{"file": os.path.basename(x["file"]), "why": x["error"]} for x in run.skipped_files]}
 
 
 @app.get("/api/dataset")
@@ -149,11 +184,13 @@ def upload():
         names.append(f.filename)
 
     try:
-        parsed = parse_paths(saved_paths)
+        run = read_paths(saved_paths)
+        parsed = accepted(run)
     except Exception as e:
         return jsonify({"error": f"could not parse the workbook(s): {e}"}), 400
 
     CURRENT["files"] = names
+    CURRENT["run"] = run
     CURRENT["parsed"] = parsed
     CURRENT["result"] = match(parsed.visits)
     return jsonify(_dataset_summary())
@@ -161,7 +198,7 @@ def upload():
 
 @app.post("/api/clear")
 def clear():
-    CURRENT.update(files=[], parsed=None, result=None)
+    CURRENT.update(files=[], parsed=None, result=None, run=None)
     for stale in glob.glob(os.path.join(UPLOAD_DIR, "*.xlsx")):
         os.remove(stale)
     return jsonify({"ok": True})
@@ -289,7 +326,7 @@ def reset_db():
                         why = f"timed out after {timeout}s" if code is None else (_log_tail() or ["failed"])[0]
                         JOBS[job_id].update(status="error", error=f"{label}: {why} (full log: {RESET_LOG})")
                         return
-            CURRENT.update(files=[], parsed=None, result=None)
+            CURRENT.update(files=[], parsed=None, result=None, run=None)
             MAIL.update(loaded=False, summary=None)
             JOBS[job_id].update(status="done", result={"message": "database reset to the seeded demo baseline"})
         except Exception as e:

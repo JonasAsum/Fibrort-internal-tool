@@ -194,7 +194,9 @@ function renderReview(d) {
   $("#file-chips").innerHTML = d.files.map((f) => `<span class="file-chip">${esc(f)}</span>`).join("");
 
   $("#summary-grid").innerHTML = [
-    ["visits", d.visits],
+    ["visits found", d.found],
+    ["visits to import", d.visits],
+    ["unsure (not imported)", d.unsure],
     ["companies", d.companies],
     ["contacts", d.contacts],
     ["tasks", d.tasks],
@@ -208,6 +210,19 @@ function renderReview(d) {
     warn.textContent = `${d.no_date} visit row(s) have a date cell that doesn't match a known style and will be skipped. First few: ${d.no_date_samples.join(", ")}`;
   } else {
     warn.classList.add("hidden");
+  }
+
+  const unsure = $("#unsure-warning");
+  if (d.unsure > 0 || (d.skipped_files && d.skipped_files.length)) {
+    unsure.classList.remove("hidden");
+    const reasons = Object.entries(d.unsure_reasons || {}).map(([why, n]) => `${n}× ${why}`).join("; ");
+    const rows = (d.unsure_rows || []).slice(0, 10)
+      .map((r) => `${r.date || "no date"} · ${r.customer || "no customer"} — ${r.why}`).join("\n");
+    const skipped = (d.skipped_files || []).map((f) => `${f.file}: ${f.why}`).join("\n");
+    unsure.textContent = (d.unsure ? `${d.unsure} visit(s) found but not imported until checked: ${reasons}\n${rows}` : "")
+      + (skipped ? `\nFiles not read: \n${skipped}` : "");
+  } else {
+    unsure.classList.add("hidden");
   }
 
   const sep = $("#separate-warning");
