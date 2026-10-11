@@ -19,12 +19,18 @@ Where each column lands (README.md has the same table for a reader):
   key plan + summary        one weekly-report note per sheet, dated Friday of
                             that week and linked to no company
 
-Every write carries `source_system` + a stable `source_id`, so a second run
-of the same file converges instead of duplicating.
+Every write carries `source_system` + a source_id built from what the record
+says, not where it sat: `visit:<owner>:<date>:<customer>:<n>` (n = which of that
+day's visits to that customer), tasks `<visit id>#T<hash of the note text>`, week
+notes `week:<owner>:<year>-W<cw>`. A later file that repeats earlier weeks, or the
+same file saved again, converges instead of duplicating. Records written under the
+old file:sheet:row ids are found by those ids and by the row each one stored.
 """
 import csv
+import hashlib
 import io
 import re
+from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -33,7 +39,7 @@ from . import when
 from common.client import ApiError, MargenceClient
 from common.fields import ensure_field
 from .match import Company, Contact, MatchResult
-from .reader import Note, Parsed, Visit, Week
+from .reader import Note, Parsed, Visit, Week, fold_name
 
 MEETING_STATUS = {"done": "held", "cancelled": "canceled", "internal": "held", "exhibition": "held"}
 LIFECYCLE_BY_TYPE = {"existing": "customer", "new": "prospect"}
@@ -151,6 +157,70 @@ def contact_emails(contact: Contact) -> list[dict]:
                 found.append(e)
     return [{"email": e, "email_type": "work", "is_primary": i == 0, "position": i}
             for i, e in enumerate(found)]
+
+
+def task_id(visit: Visit, note: Note) -> str:
+    text = " ".join(note.text.lower().split())
+    return f"{visit.source_id}#T{hashlib.sha1(text.encode()).hexdigest()[:10]}"
+
+
+def _task_subject(note: Note) -> str:
+    return ("Waiting — " if note.highlight == "yellow" else "") + note.text
+
+
+_WEEK_SUBJECT = re.compile(r"^Weekly report CW(\d+) (\d{4}) — (.*)$")
+
+
+class Existing:
+    """The activities the CRM already holds for this source_system, findable by the id the
+    current code would give them and by the older file:sheet:row ids."""
+
+    def __init__(self, activities):
+        self.by_id: dict[str, dict] = {}
+        self.by_content: dict[str, dict] = {}
+        self.tasks: dict[str, list[dict]] = defaultdict(list)  # visit id -> its tasks
+        rows = []
+        for a in activities:
+            sid = a.get("source_id") or ""
+            self.by_id[sid] = a
+            if a.get("kind") == "task":
+                if "#" in sid:
+                    self.tasks[sid.split("#")[0]].append(a)
+                continue
+            raw = a.get("raw") or {}
+            if row := raw.get("visit_list_row"):
+                rows.append((row.get("workbook", ""), row.get("sheet", ""), row.get("excel_row_start", 0), row, a))
+            elif week := raw.get("visit_list_week"):
+                self.by_content.setdefault(f"week:{fold_name(week.get('owner'))}:{week.get('year')}-W{week.get('cw')}", a)
+            elif m := _WEEK_SUBJECT.match(a.get("subject") or ""):
+                self.by_content.setdefault(f"week:{fold_name(m.group(3))}:{m.group(2)}-W{m.group(1)}", a)
+        seen: dict = {}
+        for workbook, sheet, _, row, a in sorted(rows, key=lambda r: r[:3]):
+            if not row.get("date_iso"):
+                continue
+            key = (workbook, sheet, fold_name(row.get("owner")), row["date_iso"], fold_name(row.get("customer_raw")))
+            n = seen.get(key, 0)
+            seen[key] = n + 1
+            self.by_content.setdefault(f"visit:{key[2]}:{key[3]}:{key[4]}:{n}", a)
+
+    def find(self, *ids: str) -> dict | None:
+        for i in ids:
+            if i in self.by_id:
+                return self.by_id[i]
+        return self.by_content.get(ids[0])
+
+    def task(self, visit: Visit, note: Note, found: dict | None) -> dict | None:
+        """The task already written for this note, under the new id or an old row-based one."""
+        if hit := self.by_id.get(task_id(visit, note)):
+            return hit
+        for prefix in {visit.visit_key, (found or {}).get("source_id", "")}:
+            for t in self.tasks.get(prefix, ()):
+                if t.get("subject") == _task_subject(note):
+                    return t
+        return None
+
+    def add(self, source_id: str, activity: dict) -> None:
+        self.by_id[source_id] = activity
 
 
 def task_notes(visit: Visit) -> list[Note]:
@@ -290,6 +360,7 @@ class _Run:
         self.field_columns: dict[str, str] = {}  # Company attribute -> cf_ column
         self.me = client.get("/v1/me")["user"]["id"]
         self.plans = {(w.workbook, w.sheet): planned_days(w, result) for w in parsed.weeks}
+        self.existing = Existing(())
 
     def seat_for(self, name: str) -> str | None:
         return self.seats.get(when.fold_person(name)) if name else None
@@ -446,6 +517,19 @@ class _Run:
             retry = {k: v for k, v in payload.items() if k not in ("meeting_status", "host_user_id")}
             return self.client.log_activity(retry)
 
+    def load_existing(self) -> None:
+        self.emit("existing_activities")
+        self.existing = Existing(a for a in self.client.paginate("/v1/activities", {"limit": 200})
+                                 if a.get("source_system") == self.opts.source_system)
+
+    def write(self, payload: dict, found: dict | None) -> tuple[bool, dict]:
+        """(created, activity): nothing is sent when the CRM already holds the record."""
+        if found:
+            return False, found
+        created, activity = self.log(payload)
+        self.existing.add(payload["source_id"], activity)
+        return created, activity
+
     def import_visits(self) -> None:
         datable = [v for v in self.parsed.visits if v.date_iso]
         self.report.activities_skipped_no_date = [v.visit_key for v in self.parsed.visits if not v.date_iso]
@@ -456,12 +540,13 @@ class _Run:
             company = self.result.companies.get(company_key) if company_key else None
             company_id = self.company_ids.get(company_key) if company_key else None
             contact_id = self.contact_ids.get(contact_key) if contact_key else None
-            created, _ = self.log(self.visit_payload(visit, company, company_id, contact_id))
+            found = self.existing.find(visit.source_id, visit.visit_key)
+            created, _ = self.write(self.visit_payload(visit, company, company_id, contact_id), found)
             self.report.activities_created += created
             self.report.activities_idempotent += not created
             if self.opts.tasks:
                 for note in task_notes(visit):
-                    self.log_task(visit, note, company, company_id, contact_id, cutoff)
+                    self.log_task(visit, note, company, company_id, contact_id, cutoff, found)
             self.emit("activity_progress", done=i + 1, total=len(datable),
                       created=self.report.activities_created, idempotent=self.report.activities_idempotent)
 
@@ -483,14 +568,14 @@ class _Run:
         links = ([{"entity_type": "contact", "entity_id": contact_id}] if contact_id else
                  [{"entity_type": "company", "entity_id": company_id}] if company_id else [])
         payload = {
-            **self.common(visit.visit_key, visit.owner),
+            **self.common(visit.source_id, visit.owner),
             "kind": kind,
             "subject": visit_subject(visit, company),
             "body": visit_body(visit, company, self.plans.get((visit.workbook, visit.sheet), {})
                                .get(company.key if company else "", [])),
             "occurred_at": when.visit_instant(visit, self.tz).isoformat(),
             "links": links,
-            "raw": {"visit_list_row": asdict(visit), "status": visit.status,
+            "raw": {"visit_list_row": asdict(visit), "legacy_key": visit.visit_key, "status": visit.status,
                     "company": company.display_name if company else None,
                     "time_of_day_recorded": False},
         }
@@ -500,8 +585,8 @@ class _Run:
                 payload["host_user_id"] = seat
         return payload
 
-    def log_task(self, visit: Visit, note: Note, company: Company | None, company_id: str | None,
-                 contact_id: str | None, cutoff: str | None) -> None:
+    def task_payload(self, visit: Visit, note: Note, company: Company | None, company_id: str | None,
+                     contact_id: str | None) -> dict:
         visit_day = date.fromisoformat(visit.date_iso)
         due = when.resolve_due(note.deadline, visit_day) or when.resolve_due(note.text, visit_day)
         follower = when.follow_up_owner(note.deadline) or visit.owner
@@ -512,9 +597,9 @@ class _Run:
         if note.deadline:
             lines.append(f"Deadline as written: \"{note.deadline}\"")
         payload = {
-            **self.common(f"{visit.visit_key}#K{note.excel_row}", visit.owner),
+            **self.common(task_id(visit, note), visit.owner),
             "kind": "task",
-            "subject": ("Waiting — " if note.highlight == "yellow" else "") + note.text,
+            "subject": _task_subject(note),
             "body": "\n".join(lines),
             "occurred_at": when.visit_instant(visit, self.tz).isoformat(),
             "links": [l for l in ([{"entity_type": "contact", "entity_id": contact_id}] if contact_id else []) +
@@ -524,7 +609,14 @@ class _Run:
             payload["due_at"] = when.day_instant(due.isoformat(), self.tz).isoformat()
         if seat := self.seat_for(follower):
             payload["assignee_id"] = seat
-        created, task = self.log(payload)
+        return payload
+
+    def log_task(self, visit: Visit, note: Note, company: Company | None, company_id: str | None,
+                 contact_id: str | None, cutoff: str | None, found: dict | None = None) -> None:
+        visit_day = date.fromisoformat(visit.date_iso)
+        due = when.resolve_due(note.deadline, visit_day) or when.resolve_due(note.text, visit_day)
+        payload = self.task_payload(visit, note, company, company_id, contact_id)
+        created, task = self.write(payload, self.existing.task(visit, note, found))
         if not created:
             self.report.tasks_idempotent += 1
             return
@@ -542,15 +634,15 @@ class _Run:
             # company. Each visit already says which day the plan put it on.
             # Dated at the end of the week it reports on.
             friday = (date.fromisoformat(week.monday_iso) + timedelta(days=4)).isoformat()
-            created, _ = self.log({
-                **self.common(week.week_key, week.owner),
+            created, _ = self.write({
+                **self.common(week.source_id, week.owner),
                 "kind": "note",
                 "subject": f"Weekly report CW{week.cw} {week.year} — {week.owner}",
                 "body": week_body(week),
                 "occurred_at": when.day_instant(friday, self.tz, time(17, 0)).isoformat(),
                 "links": [],
-                "raw": {"visit_list_week": asdict(week)},
-            })
+                "raw": {"visit_list_week": asdict(week), "legacy_key": week.week_key},
+            }, self.existing.find(week.source_id, week.week_key))
             self.report.weeks_created += created
             self.report.weeks_idempotent += not created
             self.emit("weeks_progress", done=i + 1, total=len(self.parsed.weeks))
@@ -568,6 +660,7 @@ def run(client: MargenceClient, parsed: Parsed, result: MatchResult, opts: Optio
     r.ensure_vocabulary()
     r.import_companies()
     r.import_contacts()
+    r.load_existing()
     r.import_visits()
     r.import_weeks()
     emit("done", report=r.report)
