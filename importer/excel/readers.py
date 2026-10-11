@@ -51,6 +51,7 @@ class Ctx:
     family: str
     year: int
     folder_owner: str
+    year_known: bool = True  # False: neither the file name nor sheet CW + file date told the year
 
     @property
     def file(self) -> str:
@@ -165,6 +166,15 @@ def _read_blocks(sheet, ctx, header_row, cols, owner, cw_hint):
     return visits, review
 
 
+def _year_items(ctx, sheet_name, row, date_raw, date_iso):
+    """The year the file name (or the sheet's CW and the file's date) gives must be the date's ISO year."""
+    if not ctx.year_known:
+        return [ctx.review(sheet_name, row, "date", date_raw, "no_year")]
+    if date.fromisoformat(date_iso).isocalendar()[0] != ctx.year:
+        return [ctx.review(sheet_name, row, "date", date_raw, "week_mismatch")]
+    return []
+
+
 def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
     review = []
 
@@ -223,6 +233,8 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
         review.append(ctx.review(sheet.name, start, "date", date_raw, f"{date_flag}_date"))
     if date_iso and cw_hint and abs(date.fromisoformat(date_iso).isocalendar()[1] - cw_hint) > 1:
         review.append(ctx.review(sheet.name, start, "date", date_raw, "week_mismatch"))
+    elif date_iso:
+        review += _year_items(ctx, sheet.name, start, date_raw, date_iso)
     if not name:
         review.append(ctx.review(sheet.name, start, "customer", cell("customer"), "no_customer"))
     elif not sure:
@@ -407,6 +419,8 @@ def _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event, participa
         review.append(ctx.review(sheet.name, head, "date", _text(date_cell), "no_date"))
     if not owner:
         review.append(ctx.review(sheet.name, head, "owner", "", "no_owner"))
+    if date_iso:
+        review += _year_items(ctx, sheet.name, head, _text(date_cell), date_iso)
     if participants and not contact:
         review.append(ctx.review(sheet.name, head, "participants",
                                  "; ".join(p["name"] for p in participants), "participants"))
@@ -483,13 +497,24 @@ def read_mock(sheet, ctx):
     return visits, week, []
 
 
-def _year_for(path: str) -> int:
+def _year_for(path: str, cw: int | None = None) -> tuple[int, bool]:
+    """(year, known). The year in the file name; else the year whose CW `cw` falls nearest the
+    file's modification date; else unknown (the file date's year, or today's, as a placeholder)."""
     name = os.path.basename(path)
     if m := WORKBOOK_YEAR.search(name):
-        return int(m.group(1))
+        return int(m.group(1)), True
     if m := YEAR_IN_NAME.search(name):
-        return int(m.group(1))
-    return date.today().year
+        return int(m.group(1)), True
+    try:
+        modified = datetime.fromtimestamp(os.path.getmtime(path)).date()
+    except OSError:
+        return date.today().year, False
+    if cw:
+        near = [(abs((_monday(y, cw) - modified).days), y) for y in range(modified.year - 1, modified.year + 2)
+                if _monday(y, cw)]
+        if near:
+            return min(near)[1], True
+    return modified.year, False
 
 
 def read_sheet(sheet: Sheet, path: str):
@@ -498,7 +523,9 @@ def read_sheet(sheet: Sheet, path: str):
     if layout is None:
         return None, [], None, []
     folder_owner = normalize_owner(os.path.basename(os.path.dirname(os.path.abspath(path))))
-    ctx = Ctx(path=path, family=layout, year=_year_for(path), folder_owner=folder_owner)
+    cw = _file_cw(path) if layout == "lucas" else _sheet_cw(sheet.name) or _file_cw(path)
+    year, known = _year_for(path, cw)
+    ctx = Ctx(path=path, family=layout, year=year, folder_owner=folder_owner, year_known=known)
     if layout == "mock":
         visits, week, review = read_mock(sheet, ctx)
     elif layout == "detail":

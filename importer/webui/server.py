@@ -162,7 +162,8 @@ def _dataset_summary() -> dict:
 
 # Plain words for the review-queue reasons that keep a visit out of the import.
 REASON_TEXT = {
-    "week_mismatch": "the visit dates are not in the week the file or sheet is named after (often a copy of an older report)",
+    "week_mismatch": "the visit dates are not in the week and year the file or sheet is named after (often a copy of an older report)",
+    "no_year": "the file name has no year and the sheet has no week number to work it out from",
     "no_date": "no readable date",
     "ambiguous_date": "the date could be day/month or month/day",
     "range_date": "the date is a range",

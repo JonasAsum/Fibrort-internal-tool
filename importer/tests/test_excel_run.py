@@ -95,5 +95,50 @@ class SheetLimits(TmpCase):
                         stat.sheet_errors)
 
 
+def one_visit_book(path, day, sheet="CW21", customer="Acme Test Co."):
+    cells = dict(WEEKLY_HEADER)
+    cells.update({"E4": "Owner：", "F4": "Jason Zhao", "B9": "Jason Zhao", "D9": day, "F9": customer, "P9": "Call"})
+    return write_book(path, {sheet: {"cells": cells}})
+
+
+def reasons(result):
+    return {r for rs in result.review_by_visit.values() for r in rs}
+
+
+class VisitYear(TmpCase):
+    def at(self, path, iso):
+        t = datetime.fromisoformat(iso).timestamp()
+        os.utime(path, (t, t))
+
+    def test_date_in_another_year_than_the_file_name_is_blocking(self):
+        p = one_visit_book(self.path("Template for Weekly Sales Reporting 2026_CW21_Rep.xlsx"), datetime(2025, 5, 19))
+        result = read_paths([p])
+        self.assertIn("week_mismatch", reasons(result))
+        self.assertEqual(result.auto_accepted, set())
+
+    def test_matching_year_is_still_accepted(self):
+        p = one_visit_book(self.path("Template for Weekly Sales Reporting 2026_CW21_Rep.xlsx"), datetime(2026, 5, 18))
+        result = read_paths([p])
+        self.assertNotIn("week_mismatch", reasons(result))
+        self.assertEqual(len(result.auto_accepted), 1)
+
+    def test_no_year_in_name_uses_sheet_cw_and_mtime_not_today(self):
+        p = one_visit_book(self.path("Weekly CW21 Rep.xlsx"), "18/05")
+        self.at(p, "2024-05-25")
+        (v,) = read_paths([p]).parsed.visits
+        self.assertEqual(v.date_iso, "2024-05-18")
+
+    def test_no_year_in_name_and_date_of_another_year_than_mtime_is_blocking(self):
+        p = one_visit_book(self.path("Weekly CW21 Rep.xlsx"), datetime(2026, 5, 18))
+        self.at(p, "2025-05-25")
+        self.assertIn("week_mismatch", reasons(read_paths([p])))
+
+    def test_year_unknowable_is_blocking(self):
+        p = one_visit_book(self.path("Weekly Rep.xlsx"), datetime(2026, 5, 18), sheet="Plan")
+        result = read_paths([p])
+        self.assertIn("no_year", reasons(result))
+        self.assertEqual(result.auto_accepted, set())
+
+
 if __name__ == "__main__":
     unittest.main()
