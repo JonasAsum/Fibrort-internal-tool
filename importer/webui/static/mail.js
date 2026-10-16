@@ -5,20 +5,23 @@ let mailStep = 1;
 
 // ---- source switch ----
 
+const MODES = ["excel", "mail", "review", "checks"];
+
 function showMode(mode) {
+  if (!MODES.includes(mode)) mode = "excel";
   document.querySelectorAll(".mode-tab").forEach((t) => {
     const on = t.dataset.mode === mode;
     t.classList.toggle("active", on);
     t.setAttribute("aria-selected", on);
   });
-  $("#view-visits").classList.toggle("hidden", mode !== "visits");
-  $("#view-mail").classList.toggle("hidden", mode !== "mail");
-  $("#view-review").classList.toggle("hidden", mode !== "review");
+  $("#btn-checks").classList.toggle("active", mode === "checks");
+  MODES.forEach((m) => $("#view-" + m).classList.toggle("hidden", mode !== m));
   if (mode === "review" && typeof reviewLoadCases === "function") reviewLoadCases(); // review.js loads after this file
+  if (mode === "checks" && typeof checksRun === "function") checksRun(); // checks.js too
   try { sessionStorage.setItem("importMode", mode); } catch (e) { /* private window: just don't remember */ }
   if (mode === "mail") mailGoToStep(mailStep); // app.js's goToStep clears every .step while the other view is open
 }
-document.querySelectorAll(".mode-tab").forEach((t) => t.addEventListener("click", () => showMode(t.dataset.mode)));
+document.querySelectorAll(".mode-tab, .header-link").forEach((t) => t.addEventListener("click", () => showMode(t.dataset.mode)));
 
 function mailGoToStep(n) {
   mailStep = n;
@@ -330,7 +333,7 @@ $("#mverify-close").addEventListener("click", () => closeModal("#mverify-modal")
     const d = await api("/api/mail/dataset");
     if (d.loaded) { renderMailReview(d); mailStep = 2; }
   } catch (e) { /* the tab simply starts empty */ }
-  let mode = "visits";
-  try { mode = sessionStorage.getItem("importMode") || "visits"; } catch (e) { /* default */ }
+  let mode = "excel";
+  try { mode = sessionStorage.getItem("importMode") || "excel"; } catch (e) { /* default */ }
   showMode(mode);
 })();

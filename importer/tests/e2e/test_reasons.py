@@ -65,7 +65,7 @@ def test_company_close_to_several_master_companies(page, server, tmp_path):
     if name is None:
         pytest.skip("the company master has no ambiguous name")
     text = shown(page, server, weekly(tmp_path / NAME21, customer=name))
-    assert re.search(r"close to more than one company", text)
+    assert re.search(r"not sure which company this is", text)
     assert stats(page)["unsure"] == 1
 
 

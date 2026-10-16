@@ -4,23 +4,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230071e3'/%3E%3Ctext x='16' y='22.5' font-family='-apple-system,Helvetica,Arial' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E">
-<title>Visit Importer</title>
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#231F20" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/static/brand/favicon-64.png">
+<link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png">
+<title>FIBRO Orange Solutions CRM Importer</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+<div class="toast-region" id="toasts" aria-live="polite"></div>
 <div id="stale-banner" class="warning hidden" role="alert">The server runs older code than the files on disk &mdash; restart it (<code>cd importer &amp;&amp; .venv/bin/python -m webui.server</code>) before trusting what this page shows.</div>
 <header>
   <div class="brand">
-    <div class="brand-mark">V</div>
-    <div>
-      <h1>Visit Importer</h1>
-      <p>Excel visit lists &rarr; Margince CRM</p>
+    <!-- primary logo (180px minimum); reverse version on dark; the brandmark alone on phones -->
+    <picture class="brand-logo">
+      <source media="(max-width: 560px)" srcset="/static/brand/brandmark.png">
+      <source media="(prefers-color-scheme: dark)" srcset="/static/brand/logo-orange-solutions-rev.png">
+      <img src="/static/brand/logo-orange-solutions.png" width="180" height="62" alt="Orange Solutions by FIBRO Rotary Tables">
+    </picture>
+    <div class="brand-text">
+      <h1>CRM Importer</h1>
+      <p>Excel lists and email &rarr; CRM</p>
     </div>
   </div>
   <div class="header-actions">
+    <button id="btn-checks" class="header-link" data-mode="checks" title="Checks: can this site work right now?">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+      <span>Checks</span>
+    </button>
     <button id="status-dot" class="status-dot" title="Checking connection…"></button>
     <button id="btn-settings" class="icon-button" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1.03 1.56V21a2 2 0 11-4 0v-.09A1.7 1.7 0 008 19.4a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.56-1.03H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 8a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 008 4.6a1.7 1.7 0 001.03-1.56V3a2 2 0 014 0v.09A1.7 1.7 0 0015.4 4.6a1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 8c.25.63.82 1.03 1.56 1.03H21a2 2 0 010 4h-.09A1.7 1.7 0 0019.4 15z"/></svg>
@@ -29,12 +41,12 @@
 </header>
 
 <nav class="mode-switch" role="tablist" aria-label="Import source">
-  <button class="mode-tab active" role="tab" aria-selected="true" data-mode="visits">Visit lists (Excel)</button>
+  <button class="mode-tab active" role="tab" aria-selected="true" data-mode="excel">Excel lists</button>
   <button class="mode-tab" role="tab" aria-selected="false" data-mode="mail">Email archive (JSON)</button>
   <button class="mode-tab" role="tab" aria-selected="false" data-mode="review">Reading review</button>
 </nav>
 
-<div id="view-visits">
+<div id="view-excel">
 <nav class="stepper">
   <div class="step active" data-step="1"><span class="step-n">1</span>Upload</div>
   <div class="step-line"></div>
@@ -43,45 +55,90 @@
   <div class="step" data-step="3"><span class="step-n">3</span>Import</div>
 </nav>
 
-<main>
+<main class="wide">
 
-  <!-- STEP 1: upload -->
+  <!-- STEP 1: the front door. One drop zone for every kind of list; each file is recognised by what is inside it. -->
   <section class="panel active" id="step-1">
-    <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Choose visit-list workbooks to upload">
+    <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Choose Excel lists to upload">
       <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
-      <p class="dz-title">Drop your visit-list workbook(s) here</p>
-      <p class="dz-sub">or click to browse &mdash; .xlsx or .xls, one or several at once</p>
-      <input id="file-input" type="file" accept=".xlsx,.xls" multiple hidden>
+      <p class="dz-title">Drop your Excel lists here</p>
+      <p class="dz-sub">One file, many files or a whole folder &mdash; .xlsx, .xlsm or .xls. Each file is recognised by what is inside it, so you can mix visit reports, customer lists, contacts, to-dos, orders and receivables.</p>
+      <input id="file-input" type="file" accept=".xlsx,.xlsm,.xls" multiple hidden>
+      <input id="folder-input" type="file" webkitdirectory multiple hidden>
+    </div>
+    <div class="entry-actions">
+      <button id="btn-pick-files" class="secondary" type="button">Choose files</button>
+      <button id="btn-pick-folder" class="secondary" type="button">Choose a folder</button>
     </div>
     <p class="hint"><label for="rep-select">Sales rep</label>
       <select id="rep-select"><option value="">from the file</option></select>
-      &mdash; for files that do not name their rep themselves (Owner cell, folder or file name)</p>
+      &mdash; only for visit reports that do not name their rep themselves (Owner cell, folder or file name)</p>
     <div id="upload-error" class="inline-error hidden"></div>
+
+    <details class="what-card">
+      <summary>What can I upload, and where does it go?</summary>
+      <table class="plain">
+        <thead><tr><th>Folder</th><th>List</th><th>Goes into the CRM as</th></tr></thead>
+        <tbody>
+          <tr><td>01-03</td><td>Weekly sales reports, weekly planning, customer visits in detail</td><td>Meetings, notes, contacts and tasks; planning as weekly notes</td></tr>
+          <tr><td>04, 05</td><td>ERP customer lists, customer lists, registrations</td><td>Accounts; competitor, forecast and application on the account; registrations as leads</td></tr>
+          <tr><td>06</td><td>Contact lists (Chinese finance lists, FIBRO handover)</td><td>Contacts on their accounts, tagged by where they came from</td></tr>
+          <tr><td>07</td><td>To-do and sales topics</td><td>Tasks with owner, due date and status</td></tr>
+          <tr><td>08</td><td>ERP sales order lists</td><td>Read-only order history on each account</td></tr>
+          <tr><td>09</td><td>AR / financial status</td><td>Open and overdue receivables as a number on the account</td></tr>
+          <tr><td>&mdash;</td><td>Invoice and packing lists, the formula workbook, bank cash flows, payables, fixed costs, L&auml;pple 2023</td><td>Recognised and kept out of the CRM on purpose (they belong in the ERP or in accounting)</td></tr>
+        </tbody>
+      </table>
+    </details>
   </section>
 
-  <!-- STEP 2: review -->
+  <!-- STEP 2: review. What every file is, then one panel per kind of list. -->
   <section class="panel" id="step-2">
-    <div class="file-chips" id="file-chips"></div>
-
-    <div class="summary" id="summary-grid"></div>
-    <div id="no-date-warning" class="warning hidden"></div>
-    <div id="unsure-warning" class="warning hidden"></div>
-    <div id="separate-warning" class="warning hidden"></div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="companies">Companies</button>
-      <button class="tab" data-tab="contacts">Contacts</button>
+    <div class="card entry-card">
+      <div class="card-head"><h3 class="card-title">Hey, this is this</h3></div>
+      <ul id="this-is" class="note-list"></ul>
     </div>
-    <div class="tab-panel" id="panel-companies">
-      <table><thead><tr><th>Name</th><th>City</th><th>Potential</th><th>Type</th><th>Reps</th><th>Visits</th><th>Last visit</th></tr></thead><tbody id="companies-body"></tbody></table>
+    <div class="card entry-card">
+      <div class="card-head"><h3 class="card-title">What you uploaded</h3><span id="entry-count" class="hint"></span></div>
+      <div class="table-wrap entry-wrap">
+        <table class="entry-table">
+          <thead><tr><th>File</th><th>What it is</th><th>Goes into the CRM as</th><th>Rows</th><th>What happens</th></tr></thead>
+          <tbody id="entry-body"></tbody>
+        </table>
+      </div>
     </div>
-    <div class="tab-panel hidden" id="panel-contacts">
-      <table><thead><tr><th>Full name</th><th>Company</th><th>Phone</th><th>Email</th></tr></thead><tbody id="contacts-body"></tbody></table>
+    <div id="nothing-banner" class="banner warn hidden"></div>
+
+    <div class="tabs fam-tabs hidden" id="family-tabs" role="tablist" aria-label="Kinds of list in this upload"></div>
+
+    <div id="family-panels">
+      <!-- the visit reports (01-03) -->
+      <div class="fam-panel hidden" id="fam-visits">
+        <div class="summary" id="summary-grid"></div>
+        <div id="no-date-warning" class="warning hidden"></div>
+        <div id="unsure-warning" class="warning hidden"></div>
+        <div id="company-questions" class="cq hidden"></div>
+        <div id="separate-warning" class="warning hidden"></div>
+
+        <div class="tabs">
+          <button class="tab active" data-tab="companies">Companies</button>
+          <button class="tab" data-tab="contacts">Contacts</button>
+        </div>
+        <div class="tab-panel" id="panel-companies">
+          <table><thead><tr><th>Name</th><th>City</th><th>Potential</th><th>Type</th><th>Reps</th><th>Visits</th><th>Last visit</th></tr></thead><tbody id="companies-body"></tbody></table>
+        </div>
+        <div class="tab-panel hidden" id="panel-contacts">
+          <table><thead><tr><th>Full name</th><th>Company</th><th>Phone</th><th>Email</th></tr></thead><tbody id="contacts-body"></tbody></table>
+        </div>
+      </div>
+      <!-- every other kind of list is drawn into here -->
+      <div id="fam-generic"></div>
     </div>
 
-    <div id="review-error" class="inline-error hidden"></div>
+    <div id="import-review-error" class="inline-error hidden"></div>
     <div class="actions">
       <button id="btn-start-over" class="secondary">Start over</button>
+      <button id="btn-dry-run" class="secondary" title="Shows what would be written, per kind of record. Writes nothing.">Test import (dry run)</button>
       <button id="btn-go-import" class="primary">Import to CRM &rarr;</button>
     </div>
   </section>
@@ -91,19 +148,20 @@
     <div id="import-working">
       <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
       <p id="progress-label" class="progress-label" role="status" aria-live="polite">Starting…</p>
+      <ul class="check-list family-progress" id="family-progress"></ul>
     </div>
 
     <div id="import-done" class="hidden">
       <div class="result-hero" id="result-hero">
         <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
         <div>
-          <h2>Import complete</h2>
+          <h2 id="result-title">Import complete</h2>
           <p id="result-sub"></p>
         </div>
       </div>
       <div class="report-grid" id="result-report"></div>
       <div class="actions">
-        <button id="btn-import-another" class="primary">Import another file</button>
+        <button id="btn-import-another" class="primary">Import more files</button>
       </div>
     </div>
 
@@ -237,11 +295,35 @@
 </main>
 </div>
 
-<!-- confirm-import modal (shows the preview before writing) -->
+<div id="view-checks" class="hidden">
+<main class="wide">
+  <section class="review-head">
+    <div>
+      <h2>Checks</h2>
+      <p class="hint">Can this site work right now? Each line says what was checked and, when it is not fine, how to fix it.
+        Checking never writes to the CRM.</p>
+    </div>
+    <button id="btn-checks-run" class="secondary">Check again</button>
+  </section>
+  <div id="checks-summary" class="banner hidden" role="status" aria-live="polite"></div>
+  <div class="card checks-card">
+    <div class="card-head"><h3 class="card-title">This site and the CRM</h3></div>
+    <ul class="check-list checks-list" id="checks-env"></ul>
+  </div>
+  <div class="card checks-card">
+    <div class="card-head"><h3 class="card-title">Readers self-test</h3></div>
+    <p class="hint">For each kind of list the site builds a tiny made-up workbook, lets the front door recognise it, reads it
+      with the real reader and compares the counts. Nothing is sent to the CRM.</p>
+    <ul class="check-list checks-list" id="checks-self"></ul>
+  </div>
+</main>
+</div>
+
+<!-- confirm-import modal: the same sheet shows a dry run (writes nothing) or the last look before importing -->
 <div id="confirm-modal" class="modal hidden">
-  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal-box modal-wide" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
     <h3 id="confirm-title">Ready to import</h3>
-    <p class="hint">Here's what will land in the CRM. This step writes data.</p>
+    <p class="hint" id="confirm-hint">Here's what will land in the CRM. This step writes data.</p>
     <div id="confirm-report" class="report-grid"></div>
     <div class="modal-actions">
       <button id="confirm-cancel" class="secondary">Cancel</button>
@@ -308,5 +390,6 @@
 <script src="/static/app.js"></script>
 <script src="/static/mail.js"></script>
 <script src="/static/review.js"></script>
+<script src="/static/checks.js"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 import threading
 import time
+from types import SimpleNamespace
 
 from webui import server
 
@@ -14,7 +15,7 @@ def test_a_second_commit_while_one_runs_is_refused(monkeypatch):
     monkeypatch.setattr(server.pipeline, "run", lambda *a, **k: (started.set(), release.wait(5), Report())[2])
     monkeypatch.setattr(server, "asdict", lambda r: {})
     monkeypatch.setitem(server.CURRENT, "result", object())
-    monkeypatch.setitem(server.CURRENT, "parsed", object())
+    monkeypatch.setitem(server.CURRENT, "parsed", SimpleNamespace(visits=[object()]))
     client = server.app.test_client()
     first = client.post("/api/commit")
     assert first.status_code == 200

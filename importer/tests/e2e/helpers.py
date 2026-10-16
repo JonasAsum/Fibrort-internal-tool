@@ -49,3 +49,42 @@ def stats(page):
 def page_text(page):
     """Everything a person can read on the visible page."""
     return re.sub(r"[ \t]+", " ", page.locator("body").inner_text())
+
+
+def entry_rows(page):
+    """The front door's table as a list of dicts: file, what, target, rows, badge, outcome."""
+    rows = []
+    for tr in page.locator("#entry-body tr").all():
+        cells = tr.locator("td")
+        rows.append({"file": cells.nth(0).locator(":scope").inner_text().split("\n")[0].strip(),
+                     "what": cells.nth(1).inner_text().strip(), "target": cells.nth(2).inner_text().strip(),
+                     "rows": cells.nth(3).inner_text().strip(), "badge": tr.locator(".badge").first.inner_text().strip(),
+                     "outcome": tr.locator(".outcome").inner_text().strip(), "status": tr.get_attribute("data-status")})
+    return rows
+
+
+def crm_counts(page, base):
+    """What the in-memory CRM of tests/e2e/site_server.py holds."""
+    return page.request.get(base + "/__test/crm").json()
+
+
+def watch_console(page):
+    """A list that fills with every console error and uncaught page error from now on."""
+    errors = []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    return errors
+
+
+def shot(page, name):
+    """Saves a screenshot under $E2E_SHOTS when it is set (the tests never need one)."""
+    import os
+    folder = os.environ.get("E2E_SHOTS")
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+        page.screenshot(path=os.path.join(folder, name + ".png"), full_page=True)
+
+
+def wait_import_result(page, timeout=300_000):
+    page.wait_for_selector("#import-done:not(.hidden), #import-error:not(.hidden)", timeout=timeout)
+    assert page.locator("#import-done:not(.hidden)").count(), page.locator("#error-text").inner_text()

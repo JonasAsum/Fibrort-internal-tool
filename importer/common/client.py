@@ -118,7 +118,7 @@ class MargenceClient:
         """Upload, preview, and commit one CSV. Returns the final report."""
         source_ref = self.upload_csv(object_, csv_text, filename)
         run_id = self.create_import_run(object_, source_ref, mapping, source_key, on_duplicate)
-        report = self.wait_for_report(run_id)
+        self.wait_for_report(run_id)
         self.approve_import_run(run_id)
         self.wait_for_run_status(run_id, {"complete", "failed"})
         return self.get(f"/v1/imports/{run_id}/report")
@@ -153,7 +153,8 @@ class MargenceClient:
     # ---- workspace vocabulary ----
 
     def seats_by_name(self) -> dict[str, str]:
-        return {u["display_name"]: u["id"] for u in self.paginate("/v1/users", {"limit": 200})
+        # an invited member is a seat too: work can be assigned to a rep who has not signed in yet
+        return {u["display_name"]: u["id"] for u in self.paginate("/v1/users", {"limit": 200, "include_invited": "true"})
                 if u.get("display_name")}
 
     def custom_fields(self, object_: str) -> list[dict]:

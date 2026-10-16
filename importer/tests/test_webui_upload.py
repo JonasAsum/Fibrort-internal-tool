@@ -35,7 +35,7 @@ class Upload(TmpCase):
         self._upload_dir = server.UPLOAD_DIR
         server.UPLOAD_DIR = self.path("uploads")
         self.addCleanup(setattr, server, "UPLOAD_DIR", self._upload_dir)
-        self.addCleanup(server.CURRENT.update, files=[], parsed=None, result=None, run=None)
+        self.addCleanup(server._forget)
         self.client = server.app.test_client()
 
     def upload(self, path, name):
@@ -71,13 +71,17 @@ class Upload(TmpCase):
         d = self.upload(lucas_book(self.path("d.xlsx")), name).get_json()
         self.assertGreater(d["found"], 0)
 
-    def test_workbook_without_any_visit_list_is_refused_with_a_reason_and_keeps_nothing(self):
+    def test_workbook_that_is_no_known_list_is_named_unknown_and_keeps_nothing(self):
         from tests.excel_book import write_book
         p = write_book(self.path("customers.xlsx"), {"List": {"cells": {"A1": "Customer Code", "B1": "Name"}}})
         r = self.upload(p, "customers.xlsx")
-        self.assertEqual(r.status_code, 422)
-        self.assertIn("No visit list recognised", r.get_json()["error"])
-        self.assertIn("customers.xlsx", r.get_json()["error"])
+        self.assertEqual(r.status_code, 200, r.get_json())  # recognised as nothing: a row that says so, not an error
+        d = r.get_json()
+        (row,) = d["batch"]["entry"]
+        self.assertEqual((row["display_name"], row["status"], row["family"]), ("customers.xlsx", "unknown", None))
+        self.assertIn("no sheet has the header columns", row["reason"])
+        self.assertNotIn("no visit list recognised", str(d).lower())
+        self.assertEqual((d["batch"]["ready_families"], d["batch"]["families"]), ([], []))
         self.assertFalse(self.client.get("/api/dataset").get_json()["loaded"])
 
     def test_same_visit_in_two_files_is_reported(self):

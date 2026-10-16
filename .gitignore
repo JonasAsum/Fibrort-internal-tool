@@ -12,6 +12,7 @@ importer/mail/staging/
 importer/mail/staging.bak-*/
 importer/mail/staging_live/
 importer/webui/.uploads/
+importer/tests/golden_records/
 
 # credentials and local config
 importer/.agent_passport.json
@@ -33,3 +34,19 @@ importer/mail/HANDOFF.md
 Excel Files from Sales Meetings/
 importer/excel/gold/
 importer/excel/out/
+
+# test caches, env files, survey output built from the real Excel files
+.pytest_cache/
+.env
+.env.*
+importer/docs/excel-survey-*.json
+
+# audit output, tool output and data dumps with real customer names
+importer/out/
+importer/graphify-out/
+importer/tests/quality/l2/
+importer/tests/golden_*.json
+importer/tests/FILES_REPORT.md
+importer/excel/company_decisions.json
+importer/docs/trust-report.html
+importer/CRM_Folder_Review.xlsx

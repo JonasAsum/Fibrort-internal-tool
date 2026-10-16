@@ -6,6 +6,7 @@ memory (CURRENT, MAIL) and is lost on restart, same as a CLI run.
     cd importer && .venv/bin/python -m webui.server      # http://localhost:5055
 """
 import glob
+import hashlib
 import json
 import os
 import re
@@ -15,8 +16,9 @@ import sys
 import threading
 import time
 import uuid
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import asdict
+from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
 
@@ -29,8 +31,12 @@ from common.client import ApiError, MargenceClient  # noqa: E402
 from visits import pipeline  # noqa: E402
 from visits.match import match  # noqa: E402
 from excel.readers import REPS  # noqa: E402
+from excel import run as excel_run  # noqa: E402
+from excel.companies import norm as company_norm  # noqa: E402
+from excel.decisions import DecisionStore, default_path  # noqa: E402
 from excel.run import read_paths  # noqa: E402
 from excel_margince import accepted  # noqa: E402
+from webui import checks as site_checks, entry, families, selftest  # noqa: E402
 
 app = Flask(__name__, static_folder="static")
 
@@ -40,7 +46,9 @@ UPLOAD_DIR = os.environ.get("IMPORTER_UPLOAD_DIR") or os.path.join(HERE, ".uploa
 
 DEFAULT_CONFIG = {"base_url": "http://localhost:8080", "email": "admin@demo.test", "password": "demo-password-123"}
 
-CURRENT = {"files": [], "parsed": None, "result": None, "run": None}
+CURRENT = {"files": [], "parsed": None, "result": None, "run": None, "paths": []}  # the visit reports (01-03)
+# Every other list family of the upload: {family: {"paths", "full" (all it read), "left_out" (flag ids), "result"}}
+BATCH = {"entry": [], "fams": {}}
 JOBS: dict[str, dict] = {}
 COMMIT_LOCK = threading.Lock()  # one import into the CRM at a time
 UPLOAD_LOCK = threading.Lock()  # one upload at a time: they share the upload folder and CURRENT
@@ -168,6 +176,19 @@ def login_test():
         return jsonify({"ok": False, "error": str(e)}), 200
 
 
+def _checks_context() -> dict:
+    return {"load_config": _load_config, "make_client": _client, "upload_dir": UPLOAD_DIR, "config_path": CONFIG_PATH,
+            "decisions_path": Path(default_path(excel_run.IMPORTER_DIR)),
+            "master": lambda: excel_run._master(excel_run.IMPORTER_DIR), "stale": _code_state() != STARTED}
+
+
+@app.get("/api/checks")
+def api_checks():
+    """The Checks page: can this site work right now, and do the readers still read? Writes nothing."""
+    return jsonify({"environment": site_checks.environment(_checks_context()),
+                    "selftest": site_checks.selftest_rows(selftest.run())})
+
+
 def _dataset_summary() -> dict:
     parsed, result = CURRENT["parsed"], CURRENT["result"]
     if result is None:
@@ -210,7 +231,8 @@ REASON_TEXT = {
     "range_date": "the date is a range",
     "no_customer": "no customer",
     "no_owner": "no sales rep",
-    "company": "the customer name is close to more than one company in the customer list",
+    "company_pair": "two spellings that may be one company: answer \"Same company\" or \"Different companies\" below",
+    "company": "not sure which company this is: answer \"New company\" or \"Existing company\" below",
     "customer_split": "unsure where the customer name ends and the address starts",
     "participants": "the participants could not be matched to the company",
 }
@@ -242,6 +264,29 @@ def _file_problems(run) -> list[dict]:
     return out
 
 
+def _company_questions(run) -> list[dict]:
+    """One question per distinct customer name that is not clearly a known company or a new one."""
+    master = excel_run._master(excel_run.IMPORTER_DIR)
+    asked: dict[str, dict] = {}
+    for item in run.review:
+        if item.field == "customer" and item.reason == "company_pair":
+            other = item.candidates[0][0]
+            a, b = sorted((item.value, other), key=lambda n: (-len(n), n))  # the fuller spelling first
+            q = asked.setdefault("pair:" + "|".join(sorted((company_norm(a), company_norm(b)))),
+                                 {"kind": "pair", "a": a, "b": b, "visits": 0})
+            q["visits"] += 1
+            continue
+        if item.field != "customer" or item.reason != "company":
+            continue
+        q = asked.setdefault(company_norm(item.value) or item.value, {
+            "kind": "company", "name": item.value, "visits": 0, "candidates": [
+                {"code": c[0], "name": c[1], "en": (master.get(c[0]) or {}).get("en", ""), "score": round(c[2], 2),
+                 "uscc": (master.get(c[0]) or {}).get("uscc", ""), "legal": (master.get(c[0]) or {}).get("legal", "")}
+                for c in (item.candidates or [])[:3]]})
+        q["visits"] += 1
+    return [families.with_suggestion(q, master) if q["kind"] == "company" else q for q in asked.values()]
+
+
 def _unsure_summary(run) -> dict:
     """Visits found in the file but left out of the import until someone checks them."""
     if run is None:
@@ -251,13 +296,16 @@ def _unsure_summary(run) -> dict:
     counts = {}
     rows = []
     for v in unsure:
-        reasons = sorted(reasons_by_visit.get(v.visit_key, set()) - {"due_decimal", "company_maybe_new"}) or ["unsure"]
+        reasons = sorted(reasons_by_visit.get(v.visit_key, set()) - {"due_decimal"}) or ["unsure"]
         for r in reasons:
             counts[REASON_TEXT.get(r, r)] = counts.get(REASON_TEXT.get(r, r), 0) + 1
         rows.append({"visit": v.visit_key, "date": v.date_iso or v.date_raw, "customer": v.customer_raw,
+                     "file": os.path.basename(v.workbook), "sheet": v.sheet, "row": v.excel_row_start,
+                     "needs_excel_fix": bool(set(reasons) - {"company", "company_pair"}),
                      "why": "; ".join(REASON_TEXT.get(r, r) for r in reasons)})
+    rows.sort(key=lambda r: not r["needs_excel_fix"])  # the ones only a corrected file can clear come first
     return {"found": len(run.parsed.visits), "unsure": len(unsure), "unsure_reasons": counts,
-            "unsure_rows": rows[:50],
+            "needs_excel_fix": sum(r["needs_excel_fix"] for r in rows), "unsure_rows": rows[:50], "company_questions": _company_questions(run),
             "skipped_files": _file_problems(run)}
 
 
@@ -266,7 +314,7 @@ def get_dataset():
     return jsonify(_dataset_summary())
 
 
-EXCEL_TYPES = (".xlsx", ".xls")
+EXCEL_TYPES = (".xlsx", ".xlsm", ".xls")
 
 
 def _clear_uploads():
@@ -279,7 +327,8 @@ def _clear_uploads():
 
 
 def _forget():
-    CURRENT.update(files=[], parsed=None, result=None, run=None)
+    CURRENT.update(files=[], parsed=None, result=None, run=None, paths=[])
+    BATCH.update(entry=[], fams={})
 
 
 def _folder_of(filename: str) -> str:
@@ -300,6 +349,14 @@ def upload():
         return _upload()
 
 
+def _sha256(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
 def _upload():
     files = request.files.getlist("files")
     if not files:
@@ -311,37 +368,300 @@ def _upload():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     _clear_uploads()
 
-    saved_paths, names = [], []
+    saved = []  # (saved path, file name, the path the browser reported)
     for i, f in enumerate(files):
         name = os.path.basename(f.filename.replace("\\", "/"))
         if not name.lower().endswith(EXCEL_TYPES):
             _clear_uploads()
-            return jsonify({"error": f"{name} is not an Excel file (.xlsx or .xls)"}), 400
+            return jsonify({"error": f"{name} is not an Excel file (.xlsx, .xlsm or .xls)"}), 400
         # Its own folder per file: two files with one name never overwrite each other, and the
         # folder the browser reported (or the rep chosen on the page) names the sales rep.
         folder = os.path.join(UPLOAD_DIR, f"f{i}", rep or _folder_of(f.filename))
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, name)
         f.save(path)
-        saved_paths.append(path)
-        names.append(name)
+        saved.append((path, name, f.filename))
 
     try:
-        run = read_paths(saved_paths)
-        parsed = accepted(run)
+        _classify(saved)
+        _read_everything()
     except Exception as e:
-        return jsonify({"error": f"could not parse the workbook(s): {e}"}), 400
+        _forget()
+        return jsonify({"error": f"could not read the workbook(s): {e}"}), 400
+    return jsonify(_batch_response())
 
-    if not run.parsed.visits:  # never a review page of zeros: say why nothing was found
-        why = "\n".join(f"{p['file']}: {p['why']}" for p in _file_problems(run))
-        return jsonify({"error": "No visit list recognised in what you uploaded; nothing was counted or imported."
-                                 + (f"\n{why}" if why else "")}), 422
 
-    CURRENT["files"] = names
-    CURRENT["run"] = run
-    CURRENT["parsed"] = parsed
-    CURRENT["result"] = match(parsed.visits)
-    return jsonify(_dataset_summary())
+def _classify(saved):
+    """BATCH["entry"]: what every uploaded workbook is, by its content. A byte-identical copy is named, not read twice."""
+    seen, out = {}, []
+    for path, _, reported in saved:
+        e = entry.classify(path, entry.folder_hint(reported))
+        digest = _sha256(path)
+        e["path"], e["duplicate_of"] = path, seen.get(digest, "")
+        seen.setdefault(digest, e["display_name"])
+        out.append(e)
+    BATCH["entry"] = out
+
+
+def _refresh_master():
+    """Matches this upload against the companies the CRM holds now. Without a usable CRM the customer list files
+    are the master, and the note says why (shown under Checks)."""
+    from excel import crm_master
+    try:
+        master = crm_master.load(_client, excel_run.IMPORTER_DIR)
+    except Exception as e:  # not reachable, not logged in, an older CRM without the endpoint
+        excel_run.set_crm_master(None, f"the CRM could not be read ({str(e)[:120]}); matching against the customer list files")
+        return
+    if not master.size:
+        excel_run.set_crm_master(None, "the CRM holds no companies yet; matching against the customer list files")
+    else:
+        excel_run.set_crm_master(master)
+
+
+def _read_everything():
+    """Reads each family's files with that family's reader. One family failing never hides another."""
+    _refresh_master()
+    by_family: dict[str, list[str]] = {}
+    for e in BATCH["entry"]:
+        if e["kind"] == "import" and not e["duplicate_of"]:
+            by_family.setdefault(e["family"], []).append(e["path"])
+    if by_family.get("visits"):
+        _read_visits(by_family["visits"])
+    for key, paths in by_family.items():
+        if key != "visits":
+            BATCH["fams"][key] = {"paths": paths, "left_out": set(families.ADAPTERS[key].left_out_by_default), "full": None,
+                                   "result": None, "error": ""}
+            _read_family(key)
+    CURRENT["files"] = [os.path.basename(p) for p in CURRENT["paths"]]
+
+
+def _read_visits(paths):
+    run = read_paths(paths)
+    parsed = accepted(run)
+    CURRENT.update(paths=paths, run=run, parsed=parsed, result=match(parsed.visits))
+
+
+def _read_family(key):
+    f, adapter = BATCH["fams"][key], families.ADAPTERS[key]
+    try:
+        f["full"] = adapter.read(f["paths"])
+        f["result"] = adapter.apply(f["full"], f["left_out"])
+        f["error"] = ""
+    except Exception as e:  # shown on that family's panel; the other families are unaffected
+        f["full"] = f["result"] = None
+        f["error"] = f"{type(e).__name__}: {e}"
+
+
+def _visits_ready() -> int:
+    """How many visits a commit would write (0 = nothing to do, e.g. a blank template)."""
+    parsed = CURRENT["parsed"]
+    return len(parsed.visits) if CURRENT["result"] is not None and parsed is not None else 0
+
+
+def _family_ready(key) -> int:
+    if key == "visits":
+        return _visits_ready()
+    f = BATCH["fams"].get(key)
+    return families.ADAPTERS[key].writable(f["result"]) if f and f["result"] is not None else 0
+
+
+def _batch_loaded() -> bool:
+    return CURRENT["run"] is not None or bool(BATCH["fams"])
+
+
+def _file_records() -> tuple[dict, dict, dict]:
+    """({saved path: (records, unit)}, {saved path: why it was not read},
+    {saved path: (status, words) for a file another file covers wholly or partly})."""
+    records, skipped, covered = {}, {}, {}
+    run = CURRENT["run"]
+    if run is not None:
+        records.update({st.path: (st.visits, "visits") for st in run.per_file_stats})
+        used = defaultdict(set)
+        for x in run.superseded:
+            used[x["ignored"]].add(x["used"])
+        for st in run.per_file_stats:
+            if st.stale_copy:
+                by = sorted(used.get(os.path.basename(st.path), ()))
+                covered[st.path] = ("superseded", "Every visit in it is also in " + (", ".join(by) if by else "another file of this upload")
+                                    + ", which is used instead. Nothing extra is written from it.")
+            elif st.visits:
+                waiting = st.visits - st.accepted
+                covered[st.path] = ("ready", f"{st.visits} visit(s) found: {st.accepted} go in"
+                                    + (f", {waiting} wait for a check (see the list below)" if waiting else "") + ".")
+        skipped.update({x["file"]: x["error"] for x in run.skipped_files})
+    for key, f in BATCH["fams"].items():
+        if f["result"] is not None:
+            records.update(families.ADAPTERS[key].file_stats(f["result"]))
+            covered.update(families.ADAPTERS[key].file_notes(f["result"]))
+            skipped.update(families.ADAPTERS[key].skipped(f["result"]))
+    return records, skipped, covered
+
+
+def _entry_view(e, records, skipped, covered) -> dict:
+    """One row of the front door's table: what the file is, where it goes in the CRM, what will happen."""
+    n, unit = records.get(e["path"], (0, ""))
+    out = {k: e[k] for k in ("display_name", "kind", "family", "folder", "what", "layout", "target", "reason",
+                             "sheets", "sheets_used", "duplicate_of")}
+    out.update(records=n, unit=unit, outcome=e["outcome"], status=e["kind"])
+    f = BATCH["fams"].get(e["family"]) if e["family"] else None
+    if e["kind"] != "import":
+        return out
+    if e["duplicate_of"]:
+        out.update(status="duplicate", outcome=f"Identical copy of {e['duplicate_of']}: read once, nothing extra.")
+    elif e["family"] != "visits" and (f is None or f["error"]):
+        out.update(status="not_read", outcome=f"Could not be read: {f['error'] if f else 'unknown error'}")
+    elif e["path"] in skipped:
+        out.update(status="not_read", outcome=f"Not read: {skipped[e['path']]}")
+    elif e["path"] in covered and covered[e["path"]][0] == "superseded":
+        out.update(status="superseded", outcome=covered[e["path"]][1])
+    elif n == 0:
+        out.update(status="empty", outcome=f"Recognised as {e['what']}, but it holds nothing to import "
+                                           "(a blank template?). Nothing is written from it.")
+    else:
+        note = covered.get(e["path"], ("", ""))[1]
+        out.update(status="ready", outcome=(note + " " if note else f"{n} {unit} found. ") + f"They go into the CRM as: {e['target']}.")
+    return out
+
+
+def _family_view(key, records) -> dict:
+    label, target, _ = entry.FAMILIES[key]
+    names = [e["display_name"] for e in BATCH["entry"] if e["kind"] == "import" and e["family"] == key and not e["duplicate_of"]]
+    view = {"key": key, "label": label, "target": target, "files": names, "ready": _family_ready(key), "waiting": 0,
+            "counts": [], "notes": [], "questions": [], "flags": [], "error": ""}
+    if key == "visits":
+        return view
+    f, adapter = BATCH["fams"][key], families.ADAPTERS[key]
+    view["error"] = f["error"]
+    if f["result"] is None:
+        return view
+    counts = adapter.flag_counts(f["full"])
+    view.update(waiting=adapter.waiting(f["result"]), counts=adapter.counts(f["result"]), notes=adapter.notes(f["result"]),
+                questions=adapter.questions(f["result"]),
+                flags=[{"id": fid, "label": label_, "help": help_, "count": counts.get(fid, 0), "included": fid not in f["left_out"]}
+                       for fid, label_, help_ in adapter.flags if counts.get(fid, 0)])
+    return view
+
+
+def _batch_summary() -> dict:
+    records, skipped, covered = _file_records()
+    views = [_family_view(k, records) for k in entry.COMMIT_ORDER
+             if any(e["kind"] == "import" and e["family"] == k for e in BATCH["entry"])]
+    return {"entry": [_entry_view(e, records, skipped, covered) for e in BATCH["entry"]], "families": views,
+            "ready_families": [v["key"] for v in views if v["ready"]]}
+
+
+def _batch_response() -> dict:
+    """The visit summary (its keys stay at the top, as before) plus the whole upload under "batch"."""
+    return {**_dataset_summary(), "batch": _batch_summary()}
+
+
+@app.get("/api/batch")
+def get_batch():
+    return jsonify(_batch_response())
+
+
+def _asked_names() -> set:
+    """Every customer name some family is asking about (a pair of spellings is answered separately)."""
+    names = set()
+    if CURRENT["run"] is not None:
+        names |= {q["name"] for q in _company_questions(CURRENT["run"]) if q.get("name")}
+    for key, f in BATCH["fams"].items():
+        if f["result"] is not None:
+            names |= {q["name"] for q in families.ADAPTERS[key].questions(f["result"])}
+    return names
+
+
+@app.get("/api/company_search")
+def company_search():
+    master = excel_run._master(excel_run.IMPORTER_DIR)
+    return jsonify({"results": master.search(request.args.get("q", ""), limit=8)})
+
+
+@app.post("/api/company_answer")
+def company_answer():
+    """{"name": <customer as written>, "code": <customer code> | null}. null = a new company."""
+    body = request.get_json(silent=True) or {}
+    return _save_answers([{"name": body.get("name"), "code": body.get("code")}])
+
+
+@app.post("/api/company_answers")
+def company_answers():
+    """{"answers": [{"name", "code"}, ...]}: several answers at once, saved together and the files read once."""
+    body = request.get_json(silent=True) or {}
+    answers = body.get("answers")
+    if not isinstance(answers, list) or not answers:
+        return jsonify({"error": "answers must be a list of {name, code}"}), 400
+    return _save_answers(answers)
+
+
+def _save_answers(answers):
+    """Checks every answer, saves them all, and reads the files once. Nothing is saved if one is wrong."""
+    if not _batch_loaded():
+        return jsonify({"error": "nothing is loaded; upload a file first"}), 400
+    master = excel_run._master(excel_run.IMPORTER_DIR)
+    asked = _asked_names()
+    for a in answers:
+        name, code = a.get("name") if isinstance(a, dict) else None, a.get("code") if isinstance(a, dict) else None
+        if not isinstance(name, str) or not (code is None or isinstance(code, str)):
+            return jsonify({"error": "name must be text and code must be text or null"}), 400
+        if name not in asked:
+            return jsonify({"error": "that company was not in the list of questions"}), 400
+        if code is not None and not master.has_code(code):
+            return jsonify({"error": f"unknown company code {code}"}), 400
+    try:
+        store = DecisionStore(default_path(excel_run.IMPORTER_DIR))
+        for a in answers:
+            store.set_new(a["name"]) if a["code"] is None else store.set_same(a["name"], a["code"])
+    except (OSError, ValueError) as e:
+        return jsonify({"error": f"could not save the answer: {e}"}), 500
+    master.apply_decisions({a["name"]: a["code"] for a in answers}, strict=False)
+    return _reread()
+
+
+@app.post("/api/company_pair_answer")
+def company_pair_answer():
+    """{"a": name, "b": name, "same": true|false}: are these two spellings one company?"""
+    body = request.get_json(silent=True) or {}
+    a, b, same = body.get("a"), body.get("b"), body.get("same")
+    if not isinstance(a, str) or not isinstance(b, str):
+        return jsonify({"error": "a and b must be text"}), 400
+    run = CURRENT.get("run")
+    if run is None or not CURRENT.get("paths"):
+        return jsonify({"error": "nothing is loaded; upload a file first"}), 400
+    if not isinstance(same, bool) or not any(
+            q.get("kind") == "pair" and {q["a"], q["b"]} == {a, b} for q in _company_questions(run)):
+        return jsonify({"error": "that pair was not in the list of questions"}), 400
+    try:
+        DecisionStore(default_path(excel_run.IMPORTER_DIR)).set_pair(a, b, same=same)
+    except (OSError, ValueError) as e:
+        return jsonify({"error": f"could not save the answer: {e}"}), 500
+    return _reread()
+
+
+def _reread():
+    """Read the uploaded files again so the answer just saved takes effect."""
+    try:
+        if CURRENT["paths"]:
+            _read_visits(CURRENT["paths"])
+        for key in BATCH["fams"]:
+            _read_family(key)
+    except Exception as e:
+        return jsonify({"error": f"could not re-read the workbook(s): {e}"}), 400
+    return jsonify(_batch_response())
+
+
+@app.post("/api/flag")
+def set_flag():
+    """{"family", "flag", "include"}: one click to keep or leave out a flagged group (the JET-IT list, finance-list
+    contacts, internal colleagues ...). The upload is not read again; nothing is deleted from the files."""
+    body = request.get_json(silent=True) or {}
+    key, flag, include = body.get("family"), body.get("flag"), body.get("include")
+    f, adapter = BATCH["fams"].get(key), families.ADAPTERS.get(key)
+    if f is None or f["full"] is None or not isinstance(include, bool) or flag not in {x[0] for x in adapter.flags}:
+        return jsonify({"error": "no such group to include or leave out"}), 400
+    f["left_out"].discard(flag) if include else f["left_out"].add(flag)
+    f["result"] = adapter.apply(f["full"], f["left_out"])
+    return jsonify(_batch_response())
 
 
 @app.post("/api/clear")
@@ -352,27 +672,81 @@ def clear():
     return jsonify({"ok": True})
 
 
-@app.post("/api/preview")
-def preview():
-    if CURRENT["result"] is None:
-        return jsonify({"error": "upload a workbook first"}), 400
+# ---- dry run and commit: one pass over every family that has something to write, in a safe order ----
+
+def _visits_dry_run(client) -> dict:
+    result = CURRENT["result"]
+    company = pipeline.preview_companies(client, result)
+    p = pipeline.plan_counts(CURRENT["parsed"], result)
+    names = {"would_create": "New companies", "created": "New companies", "already_present": "Companies already in the CRM"}
+    lines = [(names.get(k, k.replace("_", " ").capitalize()), v) for k, v in company["disposition"].items()]
+    lines += [("Contacts", f"{p['contacts']} ({p['contacts_with_phone']} with phone, {p['contacts_with_email']} with email)"),
+              ("Visit meetings", p["meetings"]), ("Visit notes", p["notes"]),
+              ("Tasks", f"{p['tasks']}" + (f" (due before {p['task_cutoff']} are marked done)" if p["task_cutoff"] else "")),
+              ("Weekly reports", p["weeks"])]
+    notes = [f"line {i['line']}{' / ' + i['column'] if i.get('column') else ''}: {i['reason']}"
+             for i in (company.get("issues") or [])[:6]]
+    return {"rows": families.rows(*lines), "notes": notes}
+
+
+def _dry_run_family(key, client) -> dict:
+    if key == "visits":
+        return _visits_dry_run(client)
+    return {"rows": families.ADAPTERS[key].dry_run(client, BATCH["fams"][key]["result"]), "notes": []}
+
+
+@app.post("/api/dry_run")
+def dry_run():
+    """What a commit would write, per family. Writes nothing."""
+    plan = [k for k in entry.COMMIT_ORDER if _family_ready(k)]
+    if not plan:
+        return jsonify({"error": "upload a workbook with something to import first"}), 400
     try:
         client = _client()
     except Exception as e:
         return jsonify({"error": f"could not log in: {e}"}), 400
+    out = []
+    for key in plan:
+        view = {"key": key, "label": entry.FAMILIES[key][0]}
+        try:
+            out.append({**view, **_dry_run_family(key, client), "error": ""})
+        except Exception as e:  # this family could not be checked; say so and go on
+            out.append({**view, "rows": [], "notes": [], "error": f"{type(e).__name__}: {e}"})
+    return jsonify({"families": out, "wrote": 0})
 
-    result = CURRENT["result"]
-    try:
-        company_report = pipeline.preview_companies(client, result)
-    except ApiError as e:
-        return jsonify({"error": str(e)}), 400
-    return jsonify({"company": company_report, "plan": pipeline.plan_counts(CURRENT["parsed"], result)})
+
+def _visits_commit(client, emit):
+    opts = pipeline.Options(source_system=os.environ.get("IMPORTER_SOURCE_SYSTEM") or "visitlist")
+    report = pipeline.run(client, CURRENT["parsed"], CURRENT["result"], opts, on_progress=emit)
+    detail = {**asdict(report), "activities_skipped_no_date": len(report.activities_skipped_no_date)}
+    disp = (detail.get("companies_report") or {}).get("disposition") or {}
+    g = detail.get
+    written = (disp.get("created", 0) + g("companies_updated", 0) + g("contacts_created", 0) + g("contacts_updated", 0)
+               + g("activities_created", 0) + g("tasks_created", 0) + g("weeks_created", 0))
+    present = disp.get("already_present", 0) + g("activities_idempotent", 0) + g("tasks_idempotent", 0) + g("weeks_idempotent", 0)
+    no_seat = g("reps_without_seat", [])
+    std = families.report(written, present, skipped=g("activities_skipped_no_date", 0), lines=[
+        ("Companies created", disp.get("created", 0)), ("Companies enriched", g("companies_updated", 0)),
+        ("Contacts created", g("contacts_created", 0)), ("Visits logged", g("activities_created", 0)),
+        ("Visits already in the CRM", g("activities_idempotent", 0)), ("Tasks created", g("tasks_created", 0)),
+        ("Tasks created as done", g("tasks_closed", 0)), ("Weekly reports created", g("weeks_created", 0)),
+        ("Custom fields added", ", ".join(g("fields_created", [])) or None)],
+        notes=[f"Reps without a CRM seat, named as author only: {', '.join(no_seat)}"] if no_seat else [])
+    return std, detail
+
+
+def _commit_family(key, client, emit):
+    """(the standard report, the visits' own detail or None)."""
+    if key == "visits":
+        return _visits_commit(client, emit)
+    return families.ADAPTERS[key].commit(client, BATCH["fams"][key]["result"], emit), None
 
 
 @app.post("/api/commit")
 def commit():
-    if CURRENT["result"] is None:
-        return jsonify({"error": "upload a workbook first"}), 400
+    plan = [k for k in entry.COMMIT_ORDER if _family_ready(k)]
+    if not plan:
+        return jsonify({"error": "upload a workbook with something to import first"}), 400
     try:
         client = _client()
     except Exception as e:
@@ -381,22 +755,30 @@ def commit():
     if not COMMIT_LOCK.acquire(blocking=False):
         return jsonify({"error": "an import is already running: wait for it to finish before starting another"}), 409
     job_id = str(uuid.uuid4())
-    JOBS[job_id] = {"status": "running", "step": "starting", "started_at": time.time()}
-    parsed, result = CURRENT["parsed"], CURRENT["result"]
-
-    def on_progress(step, **info):
-        JOBS[job_id].update(step=step, **info)
+    JOBS[job_id] = {"status": "running", "step": "starting", "started_at": time.time(), "family": plan[0], "order": plan,
+                    "families": {k: {"label": entry.FAMILIES[k][0], "status": "waiting"} for k in plan}}
 
     def work():
+        job, detail = JOBS[job_id], {}
         try:
-            opts = pipeline.Options(source_system=os.environ.get("IMPORTER_SOURCE_SYSTEM") or "visitlist")
-            report = pipeline.run(client, parsed, result, opts, on_progress=on_progress)
-            JOBS[job_id].update(status="done", result={
-                **asdict(report),
-                "activities_skipped_no_date": len(report.activities_skipped_no_date),
-            })
+            for key in plan:
+                state = job["families"][key]
+                state["status"] = "running"
+                job["family"] = key
+
+                def on_progress(step, _state=state, **info):
+                    _state.update(step=step, **info)
+                    job.update(step=step, **info)
+
+                try:
+                    report, detail[key] = _commit_family(key, client, on_progress)
+                except Exception as e:  # this family failed; the others still run
+                    report = families.report(0, 0, failed=1, errors=[f"{type(e).__name__}: {e}"])
+                state.update(report, label=state["label"])
+            job.update(status="done", result={"families": [{"key": k, **job["families"][k]} for k in plan],
+                                              "visits": detail.get("visits")})
         except Exception as e:
-            JOBS[job_id].update(status="error", error=str(e))
+            job.update(status="error", error=str(e))
         finally:
             COMMIT_LOCK.release()
 
@@ -479,7 +861,7 @@ def reset_db():
                         why = f"timed out after {timeout}s" if code is None else (_log_tail() or ["failed"])[0]
                         JOBS[job_id].update(status="error", error=f"{label}: {why} (full log: {RESET_LOG})")
                         return
-            CURRENT.update(files=[], parsed=None, result=None, run=None)
+            _forget()
             MAIL.update(loaded=False, summary=None)
             JOBS[job_id].update(status="done", result={"message": "database reset to the seeded demo baseline"})
         except Exception as e:
