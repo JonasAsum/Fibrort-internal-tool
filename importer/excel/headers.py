@@ -2,6 +2,7 @@
 use. A label matches a synonym when its normalized text equals it or starts with
 it. The first column carrying a field wins."""
 import re
+import unicodedata
 
 from .sheet import Sheet
 
@@ -51,7 +52,7 @@ def field_for(label) -> str | None:
     return None
 
 
-def find_header(sheet: Sheet):
+def find_visit_header(sheet: Sheet):
     """(row, {field: col}) for the first row mapping at least four fields,
     one of them the date; None when the sheet has no such row."""
     for r in range(1, min(SCAN_ROWS, sheet.max_row) + 1):
@@ -62,4 +63,17 @@ def find_header(sheet: Sheet):
                 cols[field] = c
         if "date" in cols and len(cols) >= 4:
             return r, cols
+    return None
+
+
+def label_field(label, synonyms) -> str | None:
+    """The field a header label names, by a table of synonyms {field: (synonym, ...)}. A synonym
+    starting with "=" must equal the whole label; any other may be a prefix of it."""
+    t = normalize(unicodedata.normalize("NFKC", "" if label is None else str(label)))
+    if not t:
+        return None
+    for name, synonyms_for in synonyms.items():
+        for s in synonyms_for:
+            if t == s.lstrip("=") or (not s.startswith("=") and t.startswith(s)):
+                return name
     return None

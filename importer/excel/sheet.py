@@ -2,10 +2,49 @@
 (row, column), 1-based. A merged cell reports its top-left value, and the other
 cells of the merge are flagged so a block's continuation rows are not read as
 new data. Formulas are read lazily, only when a cached value is missing."""
+import io
+import re
+import zipfile
+
 import openpyxl
 
 MAX_COL = 40
 MAX_ROW = 20000
+
+
+_NAMELESS_STYLE = re.compile(r"<cellStyle(?![^>]*\bname=)[^>]*/>")
+
+
+def open_workbook(path, **kwargs):
+    """openpyxl.load_workbook, except for workbooks Excel opens but openpyxl refuses because a
+    <cellStyle> in styles.xml has no name (seen in ERP exports): those are read from a copy in
+    memory without the nameless styles. The file on disk is never touched. Any other failure
+    is raised as before."""
+    try:
+        return openpyxl.load_workbook(path, **kwargs)
+    except TypeError:
+        repaired = _without_nameless_styles(path)
+        if repaired is None:
+            raise
+        return openpyxl.load_workbook(repaired, **kwargs)
+
+
+def _without_nameless_styles(path):
+    try:
+        with zipfile.ZipFile(path) as zin:
+            styles = zin.read("xl/styles.xml").decode("utf8")
+            fixed = _NAMELESS_STYLE.sub("", styles)
+            if fixed == styles:
+                return None
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zout:
+                for item in zin.infolist():
+                    data = zin.read(item.filename)
+                    zout.writestr(item, fixed.encode("utf8") if item.filename == "xl/styles.xml" else data)
+    except (KeyError, zipfile.BadZipFile):
+        return None
+    buf.seek(0)
+    return buf
 
 
 class _Formulas:
@@ -17,7 +56,7 @@ class _Formulas:
 
     def cell(self, name, r, c):
         if self.book is None:
-            self.book = openpyxl.load_workbook(self.path)
+            self.book = open_workbook(self.path)
         value = self.book[name].cell(row=r, column=c).value
         return value if isinstance(value, str) and value.startswith("=") else None
 
@@ -60,7 +99,7 @@ def load(path):
     """All sheets of an .xlsx or .xls workbook, in workbook order."""
     if path.lower().endswith(".xls"):
         return _load_xls(path)
-    wb = openpyxl.load_workbook(path, data_only=True)
+    wb = open_workbook(path, data_only=True)
     formulas = _Formulas(path)
     out = []
     for ws in wb.worksheets:

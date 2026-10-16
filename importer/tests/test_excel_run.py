@@ -27,6 +27,21 @@ class ReadPaths(TmpCase):
         self.assertEqual([os.path.basename(s["file"]) for s in result.skipped_files],
                          [os.path.basename(bad)])
 
+    def test_unchanged_file_is_not_parsed_again_and_a_changed_one_is(self):
+        from unittest import mock
+        path = week_file(self.path("Template for Weekly Sales Reporting 2026_CW21_Cache Rep.xlsx"), 21)
+        with mock.patch("excel.run.load", wraps=__import__("excel.run").run.load) as spy:
+            first = read_paths([path])
+            second = read_paths([path])
+            self.assertEqual(spy.call_count, 1)
+            self.assertEqual([v.customer_raw for v in second.parsed.visits], ["Acme Test Co."])
+            second.parsed.visits[0].customer_raw = "changed by a caller"  # the cache hands out copies
+            self.assertEqual(read_paths([path]).parsed.visits[0].customer_raw, "Acme Test Co.")
+            week_file(path, 21, extra_customer="Beta Test GmbH")
+            self.assertEqual(len(read_paths([path]).parsed.visits), 2)
+            self.assertEqual(spy.call_count, 2)
+        self.assertEqual(len(first.parsed.visits), 1)
+
     def test_identical_bytes_are_read_once(self):
         first = week_file(self.path("a_CW21.xlsx"), 21)
         second = self.path("copy_CW21.xlsx")
@@ -233,3 +248,8 @@ class WeekNotes(TmpCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_a_guessed_month_keeps_a_visit_out_of_the_auto_accepted_set():
+    from excel.run import AUTO_OK
+    assert "date_month_guessed" not in AUTO_OK

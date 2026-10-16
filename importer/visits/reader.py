@@ -16,6 +16,8 @@ from datetime import date, timedelta
 
 import openpyxl
 
+from excel.split import cell_text, fold_key
+
 MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
 DATE_PATTERNS = [
@@ -35,9 +37,6 @@ YELLOW_FILL = "FFFF00"
 # that week's Monday.
 WEEKDAY_OFFSETS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 
-
-def fold_name(name: str) -> str:
-    return re.sub(r"[\W_]+", "", (name or "").lower())
 
 
 def assign_ordinals(visits: list) -> None:
@@ -95,7 +94,7 @@ class Visit:
 
     @property
     def content_key(self) -> tuple:
-        return (fold_name(self.owner), self.date_iso, fold_name(self.customer_raw))
+        return (fold_key(self.owner), self.date_iso, fold_key(self.customer_raw))
 
     @property
     def source_id(self) -> str:
@@ -105,6 +104,8 @@ class Visit:
 
     @property
     def kind(self) -> str:
+        if self.extra.get("kind") in ("internal", "exhibition"):  # the Excel reader already saw it is no customer
+            return self.extra["kind"]
         t = (self.customer_type_raw or "").strip().lower()
         if "exhibit" in t:
             return "exhibition"
@@ -161,7 +162,7 @@ class Week:
 
     @property
     def source_id(self) -> str:
-        return f"week:{fold_name(self.owner)}:{self.year}-W{self.cw}"
+        return f"week:{fold_key(self.owner)}:{self.year}-W{self.cw}"
 
 
 def merge_weeks(weeks: list) -> list:
@@ -238,28 +239,24 @@ def _header_row(ws) -> int:
     raise ValueError(f"{ws.title}: no 'Date' header row found in the first 20 rows")
 
 
-def _text(value) -> str:
-    return str(value).strip() if value is not None else ""
-
-
 def parse_week(ws, workbook_name: str, year: int, cw: int, header_row: int) -> Week:
     monday = cw_monday(year, cw)
     days, summary = [], []
     for r in range(1, header_row):
-        label = _text(ws.cell(row=r, column=1).value)
+        label = cell_text(ws.cell(row=r, column=1).value)
         offset = WEEKDAY_OFFSETS.get(label[:3].lower())
         if offset is not None:
             days.append(DayPlan(weekday=label, date_iso=(monday + timedelta(days=offset)).isoformat(),
-                                plan=_text(ws.cell(row=r, column=2).value)))
-        line = _text(ws.cell(row=r, column=10).value)
+                                plan=cell_text(ws.cell(row=r, column=2).value)))
+        line = cell_text(ws.cell(row=r, column=10).value)
         if r > 1 and line:  # row 1 holds the "Summary" heading itself
             summary.append(line)
-    return Week(workbook=workbook_name, sheet=ws.title, owner=_text(ws.cell(row=1, column=2).value),
+    return Week(workbook=workbook_name, sheet=ws.title, owner=cell_text(ws.cell(row=1, column=2).value),
                 year=year, cw=cw, monday_iso=monday.isoformat(), days=days, summary=summary)
 
 
 def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
-    owner = _text(ws.cell(row=1, column=2).value)
+    owner = cell_text(ws.cell(row=1, column=2).value)
     cw_match = SHEET_CW.search(ws.title)
     if not cw_match:
         raise ValueError(f"{workbook_name}/{ws.title}: sheet name carries no CW/Week number")
@@ -274,7 +271,7 @@ def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
         end = (starts[i + 1] - 1) if i + 1 < len(starts) else ws.max_row
         cells = [ws.cell(row=start, column=c).value for c in range(1, 11)]
         date_raw, city, customer_raw, potential, ctype_raw, contact_raw, phone_raw, office, email, purpose = (
-            _text(v) for v in cells
+            cell_text(v) for v in cells
         )
         notes = []
         for r in range(start, end + 1):
@@ -282,7 +279,7 @@ def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
             if k.value is None or not str(k.value).strip():
                 continue
             notes.append(Note(text=str(k.value).strip(), highlight=_fill_highlight(k),
-                              deadline=_text(l.value), excel_row=r))
+                              deadline=cell_text(l.value), excel_row=r))
         date_iso = parse_date(date_raw, year)
         day = date_iso or date_raw
         order = seen_per_day.get(day, 0)

@@ -3,7 +3,7 @@ carry a name in it (Customer Visits in Detail, Weekly Sales Planning); otherwise
 the header position does."""
 import os
 
-from .headers import find_header, normalize
+from .headers import find_visit_header, normalize
 from .sheet import Sheet
 
 LAYOUTS = ("mock", "weekly2026", "lucas", "detail")
@@ -28,10 +28,10 @@ def detect(sheet: Sheet, path: str) -> str | None:
     if "customer visits in detail" in name:
         return "detail" if label_cell(sheet, "customer name") else None
     if "weekly sales planning" in name:
-        return "lucas" if find_header(sheet) else None
+        return "lucas" if find_visit_header(sheet) else None
     if _mock_header(sheet):
         return "mock"
-    found = find_header(sheet)
+    found = find_visit_header(sheet)
     if found is None:
         return None
     return "lucas" if "follow_up" in found[1] else "weekly2026"

@@ -278,7 +278,6 @@ def _msg_id(raw: str | None) -> str | None:
 
 
 def _is_decoration(name: str, ctype: str, size: int) -> bool:
-    ext = os.path.splitext(name)[1].lower()
     if ctype.startswith("image/") and size < 80_000:
         return True
     return bool(re.fullmatch(r"image\d{3}\.(png|jpg|jpeg|gif)", name.lower())) and size < 150_000

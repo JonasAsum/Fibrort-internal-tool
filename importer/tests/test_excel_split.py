@@ -1,6 +1,6 @@
 import unittest
 
-from excel.split import latin_alias, phone_numbers, phone_text, split_customer, visit_kind
+from excel.split import latin_alias, looks_like_person_name, phone_numbers, phone_text, split_customer, visit_kind
 
 
 class SplitCustomer(unittest.TestCase):
@@ -23,6 +23,16 @@ class SplitCustomer(unittest.TestCase):
     def test_plain_name_sure_only_when_short(self):
         self.assertEqual(split_customer("Plain Name"), ("Plain Name", "", True))
         self.assertFalse(split_customer("x" * 41)[2])
+
+    def test_long_multi_word_name_without_digit_or_marker_is_sure(self):
+        name = "Qiqihar Heavy CNC Equipment Corporation Limited"
+        self.assertEqual(split_customer(name), (name, "", True))
+        self.assertFalse(split_customer("Some Name " + "x" * 80)[2])
+        self.assertFalse(split_customer("Hafei Airbus Composite Materials Centre 2")[2])
+
+    def test_fair_and_messe_are_exhibitions(self):
+        self.assertEqual(visit_kind("The 29th Beijing Essen Welding & Cutting Fair"), "exhibition")
+        self.assertEqual(visit_kind("EMO Messe Hannover"), "exhibition")
 
 
 class PhoneText(unittest.TestCase):
@@ -107,6 +117,13 @@ class Kind(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(visit_kind(text), "internal")
 
+    def test_a_to_do_written_in_the_customer_cell_is_internal(self):
+        for text in ("Register a Tik Tok account.", "Get ready for the live broadcast.", "Attend weekly offline meetings.",
+                     "Upload it on the web page. Related product information"):
+            with self.subTest(text=text):
+                self.assertEqual(visit_kind(text), "internal")
+        self.assertEqual(visit_kind("Harbin Institute of Technology."), "")  # a name that ends with a full stop is a customer
+
     def test_exhibition_rows(self):
         for text in ("Exhibition", "展会", "CIIE Expo"):
             with self.subTest(text=text):
@@ -115,7 +132,27 @@ class Kind(unittest.TestCase):
     def test_customer_rows(self):
         self.assertEqual(visit_kind("wendaxin 文达新"), "")
         self.assertEqual(visit_kind(""), "")
+        # a sentence in the customer cell is no company, with or without a keyword
+        for text in ("Visit the dealer in the south.", "Waiting for the samples to arrive"):
+            with self.subTest(text=text):
+                self.assertEqual(visit_kind(text), "internal")
+        self.assertEqual(visit_kind("Institute of Technology of the North"), "")  # one grammar word: still a name
+        self.assertEqual(visit_kind("Harbin Institute of Technology"), "")
+        self.assertEqual(visit_kind("Gate to the East Co., Ltd"), "")  # a legal suffix keeps it a company
+        self.assertEqual(visit_kind("on the way to xi'an 银川文达新"), "")  # holds a Chinese name: a person decides
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PersonName(unittest.TestCase):
+    def test_what_cannot_be_a_person(self):
+        for text in ("2026-05-25", "25/05", "Mr.", "Ms", "Dr. Prof.", "13851689143", "", None, " - "):
+            with self.subTest(text=text):
+                self.assertFalse(looks_like_person_name(text))
+
+    def test_what_can_be_a_person(self):
+        for text in ("Mr. Chen", "张三", "Geng Chen", "wang工", "A.Li"):
+            with self.subTest(text=text):
+                self.assertTrue(looks_like_person_name(text))

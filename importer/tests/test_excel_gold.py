@@ -50,8 +50,20 @@ def same(field, want, got) -> bool:
     return _norm(want) == _norm(got)
 
 
+OVERRIDES = os.path.join(os.path.dirname(GOLD), "overrides.json")
+
+
+def _overrides():
+    """Decisions that replace a hand-checked value (excel/gold/overrides.json): each names the decision and why.
+    They are counted and printed, never silent (tests/quality/decisions/visits.md V-11)."""
+    if not os.path.exists(OVERRIDES):
+        return {}
+    return {(os.path.basename(o["file"]), o["sheet"].strip(), o["row"], o["field"]): o for o in json.load(open(OVERRIDES))}
+
+
 def score():
     gold = json.load(open(GOLD))
+    overrides, used = _overrides(), []
     paths = sorted({os.path.normpath(os.path.join(HERE, os.path.expanduser(g["file"]))) for g in gold})
     # One file at a time: the golden set scores the reader, not the cross-file dedupe.
     by_key = {}
@@ -64,6 +76,10 @@ def score():
         v = by_key.get((os.path.basename(g["file"]), g["sheet"].strip(), g["row"]))
         got = actual_fields(v, g["family"]) if v else {}
         for f, want in g["expected"].items():
+            o = overrides.get((os.path.basename(g["file"]), g["sheet"].strip(), g["row"], f))
+            if o is not None:
+                want = o["value"]
+                used.append((o["decision"], os.path.basename(g["file"]), g["sheet"], g["row"], f))
             ok = bool(v) and same(f, want, got.get(f))
             t = tally[g["family"]][f]
             t[0] += ok
@@ -71,6 +87,7 @@ def score():
             if not ok:
                 misses.append((g["family"], os.path.basename(g["file"]), g["sheet"], g["row"], f,
                                "missing visit" if not v else "differs"))
+    score.overrides_used = used
     return tally, misses
 
 
@@ -87,6 +104,8 @@ class GoldAccuracy(unittest.TestCase):
                   "  ".join(f"{f}={a}/{b}" for f, (a, b) in fields.items() if a < b))
         for m in misses:
             print("  miss", *m)
+        for u in getattr(score, "overrides_used", []):
+            print("  scored against an owner-decision override:", *u)
         for fam, acc in report.items():
             self.assertGreaterEqual(acc, TARGET, f"{fam} at {acc:.1%}")
 

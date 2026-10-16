@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime
 
 from excel.layouts import detect
-from excel.readers import read_sheet
+from excel.readers import read_visit_sheet
 from excel.sheet import load
 from tests.excel_book import LUCAS_HEADER, WEEKLY_HEADER, TmpCase, write_book
 from visits.reader import parse_workbook
@@ -25,7 +25,7 @@ def weekly_cells(**extra):
 class WeeklyLayout(TmpCase):
     def read(self, name, sheets):
         path = write_book(self.path(name), sheets)
-        return [read_sheet(s, path) for s in load(path)]
+        return [read_visit_sheet(s, path) for s in load(path)]
 
     def test_merged_block_with_next_steps_and_spillover(self):
         cells = weekly_cells(
@@ -55,6 +55,43 @@ class WeeklyLayout(TmpCase):
         self.assertEqual(second.customer_raw, "Beta Test GmbH")
         self.assertIn("due_decimal", {r.reason for r in review})
 
+    def test_exhibition_row_is_not_a_customer_split_question(self):
+        cells = weekly_cells(B9="Jason Zhao", D9=datetime(2026, 5, 18), F9="Exhibition in 上海市新国际博览中心",
+                             N9="Visit the show")
+        path = write_book(self.path(WEEKLY_NAME), {"CW21": {"cells": cells}})
+        ((_, visits, _, review),) = [read_visit_sheet(s, path) for s in load(path)]
+        self.assertEqual(visits[0].extra["kind"], "exhibition")
+        self.assertNotIn("customer_split", {r.reason for r in review})
+
+    def test_row_cw_cell_vouches_for_a_date_in_a_stale_sheet(self):
+        cells = weekly_cells(B9="Jason Zhao", C9="CW36", D9=datetime(2026, 8, 31), F9="Acme Test Co.")
+        path = write_book(self.path(WEEKLY_NAME), {"CW04": {"cells": cells}})
+        ((_, visits, _, review),) = [read_visit_sheet(s, path) for s in load(path)]
+        self.assertEqual(visits[0].date_iso, "2026-08-31")
+        self.assertNotIn("week_mismatch", {r.reason for r in review})
+
+    def test_row_cw_cell_settles_an_ambiguous_date(self):
+        cells = weekly_cells(B9="Jason Zhao", C9=1, D9="4/1/2026", F9="Acme Test Co.")
+        path = write_book(self.path(WEEKLY_NAME), {"CW09": {"cells": cells}})
+        ((_, visits, _, review),) = [read_visit_sheet(s, path) for s in load(path)]
+        self.assertEqual(visits[0].date_iso, "2026-01-04")
+        self.assertFalse({"ambiguous_date", "week_mismatch"} & {r.reason for r in review})
+
+    def test_row_cw_cell_that_disagrees_still_queues_week_mismatch(self):
+        cells = weekly_cells(B9="Jason Zhao", C9="CW04", D9=datetime(2026, 8, 31), F9="Acme Test Co.")
+        path = write_book(self.path(WEEKLY_NAME), {"CW04": {"cells": cells}})
+        ((_, _, _, review),) = [read_visit_sheet(s, path) for s in load(path)]
+        self.assertIn("week_mismatch", {r.reason for r in review})
+
+    def test_day_typed_without_year_in_the_wrong_month_follows_the_sheet_week(self):
+        cells = weekly_cells(B9="Jason Zhao", C9="CW09", D9=datetime(1900, 2, 24), F9="Acme Test Co.",
+                             B13="Jason Zhao", C13="CW09", D13=datetime(1900, 1, 27), F13="Beta Test GmbH")
+        path = write_book(self.path(WEEKLY_NAME.replace("CW21", "CW09")), {"CW09": {"cells": cells}})
+        ((_, visits, _, review),) = [read_visit_sheet(s, path) for s in load(path)]
+        self.assertEqual([v.date_iso for v in visits], ["2026-02-24", "2026-02-27"])
+        self.assertNotIn("week_mismatch", {r.reason for r in review})
+        self.assertIn("date_month_guessed", {r.reason for r in review})
+
     def test_flat_rows_are_one_visit_each(self):
         cells = weekly_cells(
             B9="Mark Wang", D9=datetime(2026, 5, 18), F9="Flat One", N9="a",
@@ -74,7 +111,7 @@ class WeeklyLayout(TmpCase):
 class WeeklyFixes(TmpCase):
     def read(self, cells):
         path = write_book(self.path(WEEKLY_NAME), {"CW21": {"cells": cells}})
-        ((_, visits, _, review),) = [read_sheet(s, path) for s in load(path)]
+        ((_, visits, _, review),) = [read_visit_sheet(s, path) for s in load(path)]
         return visits, review
 
     def test_date_without_customer_is_still_a_visit(self):
@@ -127,7 +164,7 @@ class LucasLayout(TmpCase):
             "M15": "Send list", "N15": "Follow the offer", "O15": "next week",
         })
         path = write_book(self.path(LUCAS_NAME), {"W01": {"cells": cells}})
-        ((layout, visits, week, review),) = [read_sheet(s, path) for s in load(path)]
+        ((layout, visits, week, review),) = [read_visit_sheet(s, path) for s in load(path)]
         self.assertEqual(layout, "lucas")
         self.assertEqual(detect(load(path)[0], path), "lucas")
         (visit,) = visits
@@ -155,7 +192,7 @@ class DetailLayout(TmpCase):
             "C15": "2026.9.17", "F15": "拜访 Other Machines Co., Ltd", "G15": "Detail three", "I15": "Jason Yi",
         }
         path = write_book(self.path(DETAIL_NAME), {"Tabelle1": {"cells": cells}})
-        ((layout, visits, week, review),) = [read_sheet(s, path) for s in load(path)]
+        ((layout, visits, week, review),) = [read_visit_sheet(s, path) for s in load(path)]
         self.assertEqual(layout, "detail")
         self.assertIsNone(week)
         first, second, third = visits
@@ -180,6 +217,21 @@ class DetailLayout(TmpCase):
         self.assertIn("participants", {r.reason for r in review})
 
 
+    def test_participants_with_titles_only_are_the_customers_people(self):
+        cells = {
+            "B3": "Customer name:", "D3": "Test Customer Co., Ltd",
+            "B5": "Participants", "D5": "Person One", "F5": "Chairman", "D6": "Person Two", "F6": "Technical Director",
+            "B11": "ID", "C11": "Date", "F11": "General topic", "G11": "Details", "I11": "Wer",
+            "C12": "2026.9.15", "F12": "technical talk", "G12": "Detail", "I12": "Jason Yi",
+        }
+        path = write_book(self.path(DETAIL_NAME), {"Tabelle1": {"cells": cells}})
+        ((_, visits, _, review),) = [read_visit_sheet(s, path) for s in load(path)]
+        (visit,) = visits
+        self.assertEqual((visit.customer_raw, visit.contact_raw), ("Test Customer Co., Ltd", "Person One"))
+        self.assertEqual(len(visit.extra["participants"]), 2)
+        self.assertNotIn("participants", {r.reason for r in review})
+
+
 class MockLayout(TmpCase):
     def test_matches_visits_reader_on_mock_workbook(self):
         if not os.path.exists(MOCK):
@@ -187,7 +239,7 @@ class MockLayout(TmpCase):
         expected = parse_workbook(MOCK)
         visits, weeks = [], []
         for sheet in load(MOCK):
-            layout, got, week, _ = read_sheet(sheet, MOCK)
+            layout, got, week, _ = read_visit_sheet(sheet, MOCK)
             if layout is None:
                 continue
             self.assertEqual(layout, "mock")

@@ -98,8 +98,10 @@ def _tricky_master():
 
 def test_customer_code_matches_exactly_and_ignores_leading_zeros():
     master = _tricky_master()
-    m = master.match("00CR992066 随便什么")
+    m = master.match("00CR992066")
     assert (m.code, m.method, m.score) == ("CR992066", "code", 1.0)
+    m = master.match("00CR992066 随便什么")  # a code next to words about another company is a question, not a match
+    assert (m.code, m.method) == (None, "review") and m.candidates[0][0] == "CR992066"
     m = master.match("CR0701256")
     assert (m.code, m.method, m.score) == ("CR0701256", "code", 1.0)
 
@@ -118,8 +120,8 @@ def test_generic_industry_words_are_not_scored():
     master = _tricky_master()
     m = master.match("Quux Machinery Technology Co., Ltd.")
     assert (m.code, m.method) == (None, "new")
-    m = master.match("乙丙机械科技有限公司")
-    assert (m.code, m.method) == (None, "new")
+    m = master.match("乙丙机械科技有限公司")  # 乙丙 sits inside the master's 甲乙丙 (机电 is generic too): a person decides
+    assert m.code is None and m.method in ("new", "review")
     m = master.match("Machinery Technology Co., Ltd.")
     assert m.method == "none" and m.code is None
 
@@ -163,7 +165,7 @@ def test_middling_similarity_goes_to_review_with_top_candidates():
 
 def test_chinese_fuzzy_typo_with_clear_gap_is_fuzzy():
     m = _tricky_master().match("甲乙丙丁戊己庚辛机屯有限公司")
-    assert (m.code, m.method) == ("F1", "fuzzy")
+    assert m.code == "F1" and m.method in ("fuzzy", "contains")  # 机电 is generic now, so the typo sits inside the core
 
 
 def test_size_counts_merged_companies(master):
@@ -237,3 +239,16 @@ def test_load_tolerates_unreadable_file(tmp_path):
     m = Master.load(tmp_path)
     assert m.size == 0
     assert m.summary()["skipped"] == ["bad_Customer_List_20260104.xlsx"]
+
+
+def test_match_found_through_one_language_part_must_agree_with_the_place_in_the_other_part():
+    """"JUGANG 宁夏巨冈": the Latin part alone finds the Guangdong company, the Chinese part says Ningxia."""
+    from excel.run import best_match
+    master = Master.from_records([{"source": "master", "code": "CR100001", "cn": "巨冈精工（广东）股份有限公司",
+                                   "en": "Jugang Precision (Guangdong) Co., Ltd.", "short": "JUGANG"}])
+    other_place = best_match(master, "JUGANG 宁夏巨冈", "")
+    assert other_place.method == "review" and other_place.code is None and other_place.score < 0.9
+    same_place = best_match(master, "JUGANG 广东巨冈", "")
+    assert same_place.code == "CR100001" and same_place.score >= 0.9
+    no_place = best_match(master, "JUGANG", "")
+    assert no_place.code == "CR100001"

@@ -25,6 +25,13 @@ class FakeCRM:
     def patch(self, path, body, **kw):
         kind, ident = path.strip("/").split("/")[1:3]
         store = {"companies": self.companies, "contacts": self.contacts, "activities": self.activities}[kind]
+        if kind == "contacts":
+            for e in body.get("emails") or []:  # another contact holding the address is a 409
+                holder = self.contact_conflict.get(e["email"].lower())
+                if holder and holder != ident:
+                    raise _Conflict(holder)
+            for e in body.get("emails") or []:
+                self.contact_conflict[e["email"].lower()] = ident
         store[ident].update(body)
         return store[ident]
 

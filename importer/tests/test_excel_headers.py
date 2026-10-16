@@ -1,6 +1,6 @@
 import unittest
 
-from excel.headers import field_for, find_header
+from excel.headers import field_for, find_visit_header
 from excel.sheet import load
 from tests.excel_book import LUCAS_HEADER, WEEKLY_HEADER, TmpCase, write_book
 
@@ -11,7 +11,7 @@ class FindHeader(TmpCase):
         return load(path)[0]
 
     def test_header_at_b8(self):
-        row, cols = find_header(self.load_one(WEEKLY_HEADER))
+        row, cols = find_visit_header(self.load_one(WEEKLY_HEADER))
         self.assertEqual(row, 8)
         self.assertEqual(cols["date"], 4)
         self.assertEqual(cols["customer"], 6)
@@ -21,7 +21,7 @@ class FindHeader(TmpCase):
         self.assertEqual(cols["status"], 18)
 
     def test_header_at_c14_lucas_shape(self):
-        row, cols = find_header(self.load_one(LUCAS_HEADER))
+        row, cols = find_visit_header(self.load_one(LUCAS_HEADER))
         self.assertEqual(row, 14)
         self.assertEqual(cols["date"], 3)
         self.assertEqual(cols["purpose"], 12)
@@ -34,14 +34,14 @@ class FindHeader(TmpCase):
             "G8": "Potential", "H8": "Customer (new, exist, dealer)", "I8": "Contact Name",
             "N8": "activity", "P8": "Next Step / Action", "Q8": "Due Date", "R8": "Status",
         }
-        row, cols = find_header(self.load_one(cells))
+        row, cols = find_visit_header(self.load_one(cells))
         self.assertEqual((row, cols["plan"], cols["date"]), (8, 2, 3))
         self.assertEqual(cols["purpose"], 14)
         self.assertEqual(cols["customer_type"], 8)
         self.assertEqual(cols["customer"], 6)
 
     def test_no_header_without_date_and_four_fields(self):
-        self.assertIsNone(find_header(self.load_one({"A1": "Date", "B1": "Name"})))
+        self.assertIsNone(find_visit_header(self.load_one({"A1": "Date", "B1": "Name"})))
 
 
 class Synonyms(unittest.TestCase):

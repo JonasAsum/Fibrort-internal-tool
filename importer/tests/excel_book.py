@@ -41,6 +41,20 @@ class TmpCase(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.tmp = tmp.name
+        # The invented customers of these tests are answered "new company", as a person would
+        # in the review step; otherwise they only look like a weak match of a real customer.
+        import json
+        from unittest import mock
+
+        from excel import run
+        decisions = os.path.join(self.tmp, "company_decisions.json")
+        with open(decisions, "w", encoding="utf-8") as f:
+            json.dump({"Acme Test Co.": None, "Beta Test Co.": None}, f)
+        env = mock.patch.dict(os.environ, {"COMPANY_DECISIONS_FILE": decisions})
+        env.start()
+        self.addCleanup(env.stop)
+        run._master.cache_clear()
+        self.addCleanup(run._master.cache_clear)
 
     def path(self, name):
         return os.path.join(self.tmp, name)

@@ -22,7 +22,7 @@ import sys
 from datetime import datetime
 
 from .cases import slug
-from .verify import Archive, amount_forms, norm, ref_forms
+from .verify import Archive, amount_forms, ref_forms, text_key
 from .extract import DEFAULT_ROOT
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +44,7 @@ def date_forms(iso: str) -> list[str]:
     forms = [f"{y}-{m}-{d}", f"{y}/{m}/{d}", f"{y}.{m}.{d}", f"{y}/{mi}/{di}", f"{y}-{mi}-{di}", f"{y}年{mi}月{di}日",
              f"{mi}月{di}日", f"{d}.{m}.{y}", f"{di}.{mi}.{y}", f"{d}.{m}.", f"{di} {mon}", f"{mon} {di}", f"{m}/{d}",
              f"{mi}/{di}"]
-    return [norm(f) for f in forms]
+    return [text_key(f) for f in forms]
 
 
 class Checker:
@@ -69,7 +69,7 @@ class Checker:
                 mid = self.case["messages"][alias]["message_id"]
                 row["message_id"] = mid
                 raw = self.arc.find(mid, self.source.get(mid, ""))
-                q = norm(quote)
+                q = text_key(quote)
                 row["verified"] = bool(raw) and (q in raw["text"] or any(q in self.arc.pdfs.get(s, "") for s in raw["atts"]))
                 if not row["verified"]:
                     problems.append(f"{field}: quote not found in {alias}: {quote[:60]!r}")
@@ -79,7 +79,7 @@ class Checker:
                 if doc["kind"] == "scan":
                     row["scan"] = True  # no text layer: checked by the second reading and by Jonas
                 else:
-                    row["verified"] = norm(quote) in self.arc.pdfs.get(doc["sha256"], "")
+                    row["verified"] = text_key(quote) in self.arc.pdfs.get(doc["sha256"], "")
                     if not row["verified"]:
                         problems.append(f"{field}: quote not found in {alias} {doc['filename']}: {quote[:60]!r}")
             else:
@@ -105,7 +105,7 @@ class Checker:
 
     @staticmethod
     def has_number(evidence: list[dict], forms: list[str]) -> bool:
-        return any(f in norm(e["quote"]) for e in evidence for f in forms)
+        return any(f in text_key(e["quote"]) for e in evidence for f in forms)
 
     # ---- one item per kind; returns (id, resolved item, problems) ----
 
@@ -219,7 +219,7 @@ class Checker:
         email, title = (c.get("email") or "").lower(), (c.get("title") or "").strip()
         if email not in self.emails:
             p.append(f"{email} is not a known contact")
-        if not title or not any(norm(title) in norm(e["quote"]) for e in ev):
+        if not title or not any(text_key(title) in text_key(e["quote"]) for e in ev):
             p.append("the title must be inside its quote")
         return f"contact:{email}:title", {"email": email, "title": title, "evidence": ev}, p
 
@@ -232,7 +232,7 @@ class Checker:
         total = d.get("total_minor")
         if total and not self.has_number(ev, amount_forms(int(total))):
             p.append(f"the total {int(total) / 100:,.2f} is not in its quotes")
-        if d.get("number") and not any(f in norm(e["quote"]) for e in ev for f in ref_forms(str(d["number"]))):
+        if d.get("number") and not any(f in text_key(e["quote"]) for e in ev for f in ref_forms(str(d["number"]))):
             p.append(f"the number {d['number']} is not in its quotes")
         item = {"sha256": doc["sha256"] if doc else None, "filename": doc["filename"] if doc else None,
                 "type": d.get("type"), "number": d.get("number"), "date": d.get("date"), "total_minor": total,
@@ -268,7 +268,7 @@ def _comparable(kind: str, item: dict, fields: tuple) -> dict:
         if f == "lines":  # only priced lines are money; a bare "2 x VR.NC.17" belongs in the summary
             v = sorted((ln.get("qty"), ln.get("unit_price_minor")) for ln in v or [] if ln.get("unit_price_minor"))
         elif f == "title":
-            v = norm(v)
+            v = text_key(v)
         out[f] = v
     return out
 

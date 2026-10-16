@@ -1,4 +1,4 @@
-"""One reader per layout. read_sheet(sheet, path) detects a sheet's layout and
+"""One reader per layout. read_visit_sheet(sheet, path) detects a sheet's layout and
 returns (layout, visits, week, review); a sheet with no known layout comes back
 as (None, [], None, []). `mock` delegates to visits.reader.parse_sheet unchanged.
 
@@ -16,11 +16,11 @@ from openpyxl.utils import get_column_letter
 
 from visits.reader import WEEKDAY_OFFSETS, WORKBOOK_YEAR, DayPlan, Note, Visit, Week, cw_monday, parse_sheet
 
-from .dates import parse_date, parse_due
-from .headers import find_header, normalize
+from .dates import OLD_YEAR, parse_date, parse_due
+from .headers import find_visit_header, normalize
 from .layouts import detect, label_cell
 from .sheet import Sheet
-from .split import SUFFIX_END, is_other_name, is_placeholder, latin_alias, phone_numbers, split_customer, visit_kind
+from .split import SUFFIX_END, cell_text, is_other_name, latin_alias, looks_like_phone, phone_numbers, split_customer, split_customer_code, split_two_lines, visit_kind
 
 REPS = ["Jason Zhao", "Devin Guo", "Mark Wang", "Sean Wang", "Ethan Lv", "Jason Yi", "Andrew Zhang", "Lucas Guo"]
 POTENTIAL = {"A", "B", "C"}
@@ -62,18 +62,6 @@ class Ctx:
                           "" if value is None else str(value), reason, list(candidates))
 
 
-def _text(value) -> str:
-    """The cell as text; placeholders ("/", "none", "无" ...) come back empty."""
-    if value is None:
-        return ""
-    if isinstance(value, datetime):
-        return value.date().isoformat()
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    text = str(value).strip()
-    return "" if is_placeholder(text) else text
-
-
 def _raw(sheet: Sheet, r, c):
     """The cell's value, or its formula text when no cached value was saved."""
     value = sheet.value(r, c)
@@ -82,7 +70,7 @@ def _raw(sheet: Sheet, r, c):
 
 def normalize_owner(raw) -> str:
     """One of REPS for a name or folder name, "" when unknown or ambiguous."""
-    t = _text(raw).lower()
+    t = cell_text(raw).lower()
     if not t:
         return ""
     for rep in REPS:
@@ -154,7 +142,7 @@ def _monday(year: int, cw: int | None) -> date | None:
 
 def _first_col_right(sheet: Sheet, r: int, c: int) -> int | None:
     for cc in range(c + 1, sheet.max_col + 1):
-        if _text(sheet.value(r, cc)):
+        if cell_text(sheet.value(r, cc)):
             return cc
     return None
 
@@ -169,7 +157,7 @@ def _order_in_day(visits: list[Visit]) -> None:
 
 def _is_start(sheet: Sheet, r: int, cols: dict, year: int) -> bool:
     c = cols.get("customer")
-    if c is not None and _text(sheet.value(r, c)) and not sheet.is_merged_continuation(r, c):
+    if c is not None and cell_text(sheet.value(r, c)) and not sheet.is_merged_continuation(r, c):
         return True
     # A customer cell merged over several dated rows (one customer, several visits): each
     # row with its own date is a visit of that customer.
@@ -207,36 +195,65 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
 
     def cell(fld, r=start):
         c = cols.get(fld)
-        return "" if c is None else _text(sheet.value(r, c))
+        return "" if c is None else cell_text(sheet.value(r, c))
 
     date_c = cols.get("date")
     date_cell = _raw(sheet, start, date_c) if date_c else None
-    date_raw = _text(date_cell)
+    date_raw = cell_text(date_cell)
     ref = _monday(ctx.year, cw_hint)
     date_iso, date_flag = parse_date(date_cell, ref, ctx.year, lookup=sheet.value)
+    # The row's own CW cell settles an ambiguous date and vouches for a date in a mislabelled sheet.
+    row_cw = None
+    if m := re.search(r"\d{1,2}", cell("cw")):
+        row_cw = int(m.group(0))
+    if date_flag == "ambiguous" and row_cw and (row_ref := _monday(ctx.year, row_cw)):
+        again, again_flag = parse_date(date_cell, row_ref, ctx.year, lookup=sheet.value)
+        if again and not again_flag:
+            date_iso, date_flag = again, ""
+    month_fixed = False
+    if (date_iso and ref and isinstance(date_cell, datetime) and date_cell.year < OLD_YEAR
+            and abs((date.fromisoformat(date_iso) - ref).days) > 7):
+        # A day typed without year or month sits in the wrong month (27 Jan in the sheet of 23 Feb - 1 Mar):
+        # the sheet's own week holds that day number, so it is that day.
+        for anchor in (ref, ref + timedelta(days=6)):
+            try:
+                guess = date(anchor.year, anchor.month, date_cell.day)
+            except ValueError:
+                continue
+            if -1 <= (guess - ref).days <= 7:
+                date_iso, date_flag, month_fixed = guess.isoformat(), "", True
+                break
     visit_day = date.fromisoformat(date_iso) if date_iso else (ref or date(ctx.year, 1, 1))
 
     # "上海某某有限公司(Some Name)" on the first line: the latin part is the English name.
-    first, sep, rest = str(cell("customer") or "").partition("\n")
-    first, name_en = latin_alias(first)
-    # A full legal name on the first line with its translation below: the second line is
-    # the other-language name, not an address and not part of the name.
-    if rest and SUFFIX_END.search(first.strip()) and is_other_name(rest):
-        name_en, rest, sep = name_en or " ".join(rest.split()), "", ""
-    name, address, sure = split_customer(first + sep + rest)
+    # cell() flattens line breaks, which hides the shapes below; read the cell with its line break for those.
+    raw_customer = cell_text(sheet.value(start, cols["customer"]), keep_lines=True) if "customer" in cols else ""
+    customer_code, raw_customer = split_customer_code(raw_customer)  # the ERP code is its own field, not part of the name
+    two = split_two_lines(raw_customer)
+    if two:
+        (name, name_en, address), sure = two, True
+    else:
+        flat = " ".join(raw_customer.split()) if customer_code else str(cell("customer") or "")
+        first, sep, rest = flat.partition("\n")
+        first, name_en = latin_alias(first)
+        # A full legal name on the first line with its translation below: the second line is
+        # the other-language name, not an address and not part of the name.
+        if rest and SUFFIX_END.search(first.strip()) and is_other_name(rest):
+            name_en, rest, sep = name_en or " ".join(rest.split()), "", ""
+        name, address, sure = split_customer(first + sep + rest)
     purpose = [cell("purpose")]
     communication = [cell("communication")]
     for r in range(start + 1, end + 1):
         for fld, parts in (("purpose", purpose), ("communication", communication)):
             c = cols.get(fld)
-            if c is not None and not sheet.is_merged_continuation(r, c) and _text(sheet.value(r, c)):
-                parts.append(_text(sheet.value(r, c)))
+            if c is not None and not sheet.is_merged_continuation(r, c) and cell_text(sheet.value(r, c)):
+                parts.append(cell_text(sheet.value(r, c)))
 
     dues, first_due = {}, None
     due_c = cols.get("due")
     for r in range(start, end + 1):
         raw = sheet.value(r, due_c) if due_c else None
-        if not _text(raw):
+        if not cell_text(raw):
             continue
         iso, phrase, dflag = parse_due(raw, visit_day)
         dues[r] = iso or phrase
@@ -249,16 +266,19 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
     for r in range(start, end + 1):
         if ns_c is None or sheet.is_merged_continuation(r, ns_c):
             continue
-        text = _text(sheet.value(r, ns_c))
+        text = cell_text(sheet.value(r, ns_c))
         if text and not PLACEHOLDER.match(text):
             notes.append(Note(text=text, highlight="green", deadline=dues.get(r) or first_due or "",
                               excel_row=r))
 
+    if month_fixed:
+        review.append(ctx.review(sheet.name, start, "date", date_raw, "date_month_guessed"))
     if date_iso is None:
         review.append(ctx.review(sheet.name, start, "date", date_raw, "no_date"))
     elif date_flag in ("ambiguous", "range"):
         review.append(ctx.review(sheet.name, start, "date", date_raw, f"{date_flag}_date"))
-    if date_iso and cw_hint and abs(date.fromisoformat(date_iso).isocalendar()[1] - cw_hint) > 1:
+    date_week = date.fromisoformat(date_iso).isocalendar()[1] if date_iso else None
+    if date_iso and cw_hint and abs(date_week - cw_hint) > 1 and not (row_cw and abs(date_week - row_cw) <= 1):
         # Lucas files carry a stale "Timing" label; the row dates are the truth, so there it is
         # only a note. A weekly sheet named for another week still waits for a check.
         reason = "week_label_differs" if ctx.family == "lucas" else "week_mismatch"
@@ -267,7 +287,7 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
         review += _year_items(ctx, sheet.name, start, date_raw, date_iso)
     if not name:
         review.append(ctx.review(sheet.name, start, "customer", cell("customer"), "no_customer"))
-    elif not sure:
+    elif not sure and not visit_kind(cell("customer")):
         review.append(ctx.review(sheet.name, start, "customer", cell("customer"), "customer_split"))
 
     row_owner = owner or normalize_owner(cell("sales"))
@@ -283,7 +303,12 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
     if "follow_up" in cols:
         extra["follow_up"] = cell("follow_up")
     extra["name_en"] = name_en
+    if customer_code:
+        extra["customer_code"] = customer_code
     extra["kind"] = visit_kind(cell("customer"))
+    office = cell("office")
+    if office and not looks_like_phone(office):  # the Lucas sheets' "Office" column holds the office address
+        extra["office_address"], office = office, ""
     phones = phone_numbers(sheet.value(start, cols["phone"])) if "phone" in cols else []
     if len(phones) > 1:
         extra["phone_more"] = "; ".join(phones[1:])
@@ -297,7 +322,7 @@ def _block_visit(sheet, ctx, start, end, cols, owner, cw_hint):
         potential=potential if potential in POTENTIAL else "",
         customer_type_raw=cell("customer_type"), contact_raw=cell("contact"),
         phone_raw=phones[0] if phones else "",
-        office_phone=cell("office"), email=cell("email"),
+        office_phone=office, email=cell("email"),
         purpose="\n".join(p for p in purpose if p), notes=notes, extra=extra,
     )
     return visit, review
@@ -321,11 +346,11 @@ def read_lucas(sheet, ctx, owner, found):
         iso_year, iso_week, _ = day.isocalendar()
         days = []
         for r in range(1, row):
-            label = _text(sheet.value(r, 3))
+            label = cell_text(sheet.value(r, 3))
             offset = WEEKDAY_OFFSETS.get(label[:3].lower()) if label.isalpha() else None
             if offset is not None:
                 days.append(DayPlan(weekday=label, date_iso=(monday + timedelta(days=offset)).isoformat(),
-                                    plan=_text(sheet.value(r, 4))))
+                                    plan=cell_text(sheet.value(r, 4))))
         week = Week(workbook=ctx.file, sheet=sheet.name, owner=owner, year=iso_year, cw=iso_week,
                     monday_iso=monday.isoformat(), days=days, summary=[])
     return visits, week, review
@@ -374,7 +399,7 @@ def _same_company(a: str, b: str) -> bool:
 
 def _person(raw) -> str:
     """A rep from a "from"/"Wer" cell, which may read "Devin.Guo"."""
-    return normalize_owner(re.sub(r"[._\-]+", " ", _text(raw)))
+    return normalize_owner(re.sub(r"[._\-]+", " ", cell_text(raw)))
 
 
 def _item_header(sheet: Sheet):
@@ -415,7 +440,7 @@ def _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event, participa
         col = cols.get(fld)
         if col is None:
             return ""
-        return "\n".join(t for t in (_text(sheet.value(r, col)) for r in rs) if t)
+        return "\n".join(t for t in (cell_text(sheet.value(r, col)) for r in rs) if t)
 
     topic = field("topic", [head])
     details = field("details")
@@ -423,7 +448,7 @@ def _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event, participa
     date_cell = _raw(sheet, head, cols["date"]) if "date" in cols else None
     date_iso, date_flag = parse_date(date_cell, None, ctx.year, lookup=sheet.value)
     if date_flag in ("ambiguous", "range"):
-        review.append(ctx.review(sheet.name, head, "date", _text(date_cell), f"{date_flag}_date"))
+        review.append(ctx.review(sheet.name, head, "date", cell_text(date_cell), f"{date_flag}_date"))
     if date_iso is None:
         date_iso = _sheet_md(sheet.name, ctx.year)
     visit_day = date.fromisoformat(date_iso) if date_iso else date(ctx.year, 1, 1)
@@ -431,26 +456,30 @@ def _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event, participa
     customer = _topic_company(topic) or sheet_customer
     contact = next((p["name"] for p in participants
                     if p["company"] and customer and _same_company(p["company"], customer)), "")
+    if not contact and customer and participants and not any(p["company"] for p in participants):
+        # The form lists the customer's people under the customer: job titles only, no company
+        # of their own. The first is the contact; the rest stay in the visit's participants.
+        contact = next((p["name"] for p in participants if p["name"]), "")
     owner = _person(field("from", [head])) or _person(field("wer", [head])) or owner
     wer = field("wer", [head])
 
     notes = []
     if details:
         notes.append(Note(text=details, highlight=None, deadline="", excel_row=head))
-    if _text(wv_raw):
+    if cell_text(wv_raw):
         iso, phrase, _ = parse_due(wv_raw, visit_day)
         notes.append(Note(text=f"{topic or details} (Wer: {wer})", highlight="green",
                           deadline=iso or phrase, excel_row=head))
 
-    extra_notes = [_text(sheet.value(r, cc)) for r in rows for cc in range(last + 1, sheet.max_col + 1)]
+    extra_notes = [cell_text(sheet.value(r, cc)) for r in rows for cc in range(last + 1, sheet.max_col + 1)]
     if not customer:
         review.append(ctx.review(sheet.name, head, "customer", "", "no_customer"))
     if date_iso is None:
-        review.append(ctx.review(sheet.name, head, "date", _text(date_cell), "no_date"))
+        review.append(ctx.review(sheet.name, head, "date", cell_text(date_cell), "no_date"))
     if not owner:
         review.append(ctx.review(sheet.name, head, "owner", "", "no_owner"))
     if date_iso:
-        review += _year_items(ctx, sheet.name, head, _text(date_cell), date_iso)
+        review += _year_items(ctx, sheet.name, head, cell_text(date_cell), date_iso)
     if participants and not contact:
         review.append(ctx.review(sheet.name, head, "participants",
                                  "; ".join(p["name"] for p in participants), "participants"))
@@ -459,14 +488,14 @@ def _detail_visit(sheet, ctx, rows, cols, last, sheet_customer, event, participa
         workbook=ctx.file, sheet=sheet.name, owner=owner,
         year=int(date_iso[:4]) if date_iso else ctx.year,
         cw=date.fromisoformat(date_iso).isocalendar()[1] if date_iso else 0,
-        excel_row_start=head, excel_row_end=rows[-1], date_raw=_text(date_cell), date_iso=date_iso,
+        excel_row_start=head, excel_row_end=rows[-1], date_raw=cell_text(date_cell), date_iso=date_iso,
         city="", customer_raw=customer, potential="", customer_type_raw="", contact_raw=contact,
         phone_raw="", office_phone="", email="", purpose=topic, notes=notes,
         extra={
             "kind": visit_kind(customer), "event": event,
             "participants": [dict(p) for p in participants], "details": details,
             "status_text": field("status"), "typ": field("typ", [head]),
-            "from_person": field("from", [head]), "wv": _text(wv_raw), "wer": wer,
+            "from_person": field("from", [head]), "wv": cell_text(wv_raw), "wer": wer,
             "extra_notes": " | ".join(t for t in extra_notes if t),
             "source_cells": {fld: f"{get_column_letter(col)}{head}" for fld, col in cols.items()},
         },
@@ -483,7 +512,7 @@ def read_detail(sheet, ctx, owner):
         return [], None, review
     lr, lc = label
     c = _first_col_right(sheet, lr, lc)
-    sheet_customer = _text(sheet.value(lr, c)) if c else ""
+    sheet_customer = cell_text(sheet.value(lr, c)) if c else ""
     event = sheet_customer if EVENT.search(sheet_customer) else ""
 
     participants = []
@@ -495,8 +524,8 @@ def read_detail(sheet, ctx, owner):
             if name_c is None:
                 break
             role_c = _first_col_right(sheet, r, name_c)
-            role = _text(sheet.value(r, role_c)) if role_c else ""
-            participants.append({"name": _text(sheet.value(r, name_c)), "role": role,
+            role = cell_text(sheet.value(r, role_c)) if role_c else ""
+            participants.append({"name": cell_text(sheet.value(r, name_c)), "role": role,
                                  "company": _role_company(role)})
 
     head = _item_header(sheet)
@@ -505,11 +534,11 @@ def read_detail(sheet, ctx, owner):
     hr, cols, last = head
     items = []
     for r in range(hr + 1, sheet.max_row + 1):
-        starts = bool(_text(sheet.value(r, cols["topic"]))) or (
-            "date" in cols and bool(_text(_raw(sheet, r, cols["date"]))))
+        starts = bool(cell_text(sheet.value(r, cols["topic"]))) or (
+            "date" in cols and bool(cell_text(_raw(sheet, r, cols["date"]))))
         if starts:
             items.append([r])
-        elif items and any(_text(sheet.value(r, cc)) for cc in range(1, sheet.max_col + 1)):
+        elif items and any(cell_text(sheet.value(r, cc)) for cc in range(1, sheet.max_col + 1)):
             items[-1].append(r)
 
     visits = []
@@ -547,7 +576,7 @@ def _year_for(path: str, cw: int | None = None) -> tuple[int, bool]:
     return modified.year, False
 
 
-def read_sheet(sheet: Sheet, path: str):
+def read_visit_sheet(sheet: Sheet, path: str):
     """(layout, visits, week, review) for one sheet of the workbook at path."""
     layout = detect(sheet, path)
     if layout is None:
@@ -563,7 +592,7 @@ def read_sheet(sheet: Sheet, path: str):
         visits, week, review = read_detail(sheet, ctx, folder_owner)
     else:
         owner = _sheet_owner(sheet, folder_owner)
-        found = find_header(sheet)
+        found = find_visit_header(sheet)
         if layout == "lucas":
             visits, week, review = read_lucas(sheet, ctx, owner, found)
         else:
