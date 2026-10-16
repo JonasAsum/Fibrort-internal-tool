@@ -667,3 +667,18 @@ def test_a_line_that_equals_the_sum_of_the_others_holds_the_order_out(tmp_path):
     dup = _order("SO2", [line(55000.0)] * 4 + [line(220000.0)], info)
     assert clean.issues == []
     assert any("double count" in i for i in dup.issues)
+
+
+def test_two_exports_with_two_amounts_hold_the_order_out(tmp_path):
+    old = export(tmp_path, "old.xlsx", [fline("SO1"), fline("SO2")], stamp="2026-03-01 10:00:00")
+    new = export(tmp_path, "new.xlsx", [fline("SO1", net=120, gross=135.6), fline("SO2")], stamp="2026-04-01 10:00:00")
+    got = {o.document_no: o for o in build_book([old, new], master()).orders}
+    assert any("exports disagree" in i for i in got["SO1"].issues)
+    assert got["SO2"].issues == []  # the same amount in both exports is no doubt
+
+
+def test_order_of_another_sales_entity_is_not_attached_to_a_china_customer_by_name(tmp_path):
+    p = export(tmp_path, "a.xlsx", [fline("SO1", cust="Cosmos Stellar", org=US_ORG), fline("SO2", cust="Cosmos Stellar", org=CN_ORG)])
+    got = {o.document_no: o for o in build_book([p], master()).orders}
+    assert any("another sales entity" in i for i in got["SO1"].issues)
+    assert got["SO2"].issues == []

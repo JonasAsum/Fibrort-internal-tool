@@ -153,3 +153,13 @@ class DuplicateEmail(TmpCase):
         self.assertEqual(by_name["Li Other"]["emails"], [])
         self.assertEqual(len(by_name["Wang Test"]["emails"]), 1)
         self.assertEqual(report.contacts_created, 2)
+
+
+def test_subjects_are_one_line_whatever_the_cell_holds():
+    from types import SimpleNamespace as NS
+    from visits.pipeline import _task_subject, visit_subject
+    internal = NS(kind="internal", purpose="Write or forward\nsome  information\r\nabout it", city="", customer_raw="", status="done")
+    assert visit_subject(internal, None) == "Internal — Write or forward some information about it"
+    exhibition = NS(kind="exhibition", purpose="", city="Dalian", customer_raw="Welding\nExhibition", status="done")
+    assert visit_subject(exhibition, None) == "Exhibition — Welding Exhibition (Dalian)"
+    assert _task_subject(NS(highlight="yellow", text="Call back\nnext week")) == "Waiting — Call back next week"

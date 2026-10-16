@@ -813,6 +813,9 @@ def _match_orgs(orders, master, review):
                                          [list(c) for c in (m.candidates or [])]))
         m = matches[o.customer]
         known = m.score >= COMPANY_OK and (m.cn or m.en)
+        if known and o.entity and LOCAL_ENTITY not in o.entity and m.method != "code":
+            # another sales entity (the US company) sells to its own customers: a China customer of the same name is not proof
+            o.issues.append("order of another sales entity matched to a China customer by name only")
         name = (m.cn or m.en) if known else o.customer
         o.company_key = company_norm(name) or name.lower()
         org = orgs.get(o.company_key)
@@ -876,6 +879,9 @@ def build_book(paths, master=None) -> OrdersBook:
         _, info, lines = usable[0]
         order = _order(doc, lines, info)
         order.superseded = [t[1].name for t in found if t[1] is not info]
+        others = [round(sum(ln.gross_amount or 0.0 for ln in t[2]), 2) for t in usable[1:]]
+        if any(abs(g - order.gross) > 0.5 for g in others):  # two exports give two amounts: which one is right is not known
+            order.issues.append("exports disagree on the amount: " + ", ".join(f"{g:,.2f}" for g in [order.gross, *others]))
         info.kept_documents += 1
         if not order.date_iso:
             book.review.append(ReviewItem(FAMILY, info.name, order.sheet, order.row, "date", doc, "no_date"))

@@ -173,8 +173,13 @@ def task_id(visit: Visit, note: Note) -> str:
     return f"{visit.source_id}#T{hashlib.sha1(text.encode()).hexdigest()[:10]}"
 
 
+def _one_line(text: str) -> str:
+    """A subject is one line: line breaks and runs of spaces in a cell become single spaces."""
+    return " ".join(str(text).split())
+
+
 def _task_subject(note: Note) -> str:
-    return ("Waiting — " if note.highlight == "yellow" else "") + note.text
+    return _one_line(("Waiting — " if note.highlight == "yellow" else "") + note.text)
 
 
 _WEEK_SUBJECT = re.compile(r"^Weekly report CW(\d+) (\d{4}) — (.*)$")
@@ -256,11 +261,11 @@ def visit_subject(visit: Visit, company: Company | None) -> str:
     name = company.display_name if company else visit.customer_raw
     where = f" ({visit.city})" if visit.city else ""
     if visit.kind == "exhibition":
-        return f"Exhibition — {visit.customer_raw}{where}"
+        return _one_line(f"Exhibition — {visit.customer_raw}{where}")
     if visit.kind == "internal":
-        return f"Internal — {visit.purpose or visit.city}"
+        return _one_line(f"Internal — {visit.purpose or visit.city}")
     prefix = "Cancelled visit" if visit.status == "cancelled" else "Visit"
-    return f"{prefix} — {name}{where}"
+    return _one_line(f"{prefix} — {name}{where}")
 
 
 def visit_body(visit: Visit, company: Company | None, planned: list[str] = ()) -> str:
