@@ -101,9 +101,12 @@ Each folder is numbered in the order to run it in. Everything from the
 | The whole row | the activity's `raw` (`visit_list_row` / `visit_list_week`), so nothing the sheet said is lost even where no field fits |
 | First/last visit | company fields **First visit**, **Last visit** |
 
-Every write carries `source_system=visitlist` and a stable `source_id`
-(`workbook:sheet:row`, `…#K<row>` for a task, `…:week` for a week), so a
-second run of the same files writes nothing.
+Every write carries `source_system=visitlist` and a content-based `source_id`
+(`visit:<owner>:<date>:<customer>:<n>`, `…#T<hash of the note>` for a task,
+`week:<owner>:<year>-W<cw>` for a week), so a second run of the same files, or a
+later file that repeats earlier weeks, writes nothing. Records written under the
+older `workbook:sheet:row` ids are recognised by those ids and by the row stored in
+their `raw`; the old key stays in `raw.legacy_key`.
 
 ## How it works
 

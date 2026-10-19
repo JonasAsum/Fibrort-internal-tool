@@ -41,6 +41,8 @@ def resolve_due(phrase: str, visit_day: date) -> date | None:
     text = phrase.strip()
     if not text:
         return None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        return date.fromisoformat(text)
     lower = text.lower()
     if m := _IN_DAYS.search(text):
         return visit_day + timedelta(days=int(m.group(1)))

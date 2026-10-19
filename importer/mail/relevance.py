@@ -59,7 +59,7 @@ OUR_NAMES = re.compile(r"fibro\W*(rotary\W*tables?|rundtische?|precision)\w*|rot
                        re.I)
 
 
-def _text(m: dict) -> str:
+def subject_and_documents(m: dict) -> str:
     """Subject + document names, with our own company names removed ('FIBRO Rotary Tables US Inc' on an audit
     form is not a product)."""
     t = m["subject"] + " " + " ".join(a["filename"] for a in m["attachments"] if not a["decoration"])
@@ -82,7 +82,7 @@ def decide(messages: list[dict], companies: dict[str, dict], overrides: dict | N
                         if p["email"] and _ext(p["email"])}
         mass = len(rcpt_domains) >= MASS_DOMAINS
         automated = m.get("bulk") or bool(sender and AUTOMATED_SENDER.match(sender.split("@")[0]))
-        text = _text(m)
+        text = subject_and_documents(m)
         product, inquiry, deal = bool(PRODUCT.search(text)), bool(INQUIRY.search(text)), bool(DEAL.search(text))
         bill_only = bool(BILL.search(text)) and not (product or inquiry)
         business = product or inquiry or deal

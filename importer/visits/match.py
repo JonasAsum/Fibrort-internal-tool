@@ -10,8 +10,11 @@ single file into one row - that has to happen here, before the file is
 built.
 """
 import re
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field
+
+from excel.split import looks_like_person_name
 
 from .reader import Visit
 
@@ -98,6 +101,10 @@ class _CompanyNamer:
             return customer_raw.strip().lower()
         if len(tokens) >= 2 and not any(abbreviated):
             return ":".join(tokens)
+        # Chinese is written without spaces: one token of four or more characters is a
+        # name written out in full, not a short form to resolve per city.
+        if len(tokens) == 1 and len(tokens[0]) >= 4 and re.search(r"[\u4e00-\u9fff]", tokens[0]):
+            return tokens[0]
         candidates = sorted(f for f in self._full_by_first.get(tokens[0], ())
                             if _could_be(tokens, abbreviated, f))
         pick, why = self._pick(candidates, city, contact_raw)
@@ -140,6 +147,45 @@ def _surname_key(contact_raw: str) -> str:
     return token
 
 
+_NAME_SEP = re.compile(r"[\s.,\-_/\\\u00b7\u30fb]+")
+_NAME_SALUTATIONS = {"mr", "ms", "mrs", "mister", "miss", "dr", "prof"}
+
+
+def _person_tokens(contact_raw: str) -> tuple[str, ...]:
+    """The words of a contact's name, folded and sorted so word order and
+    separators do not matter. Salutations are dropped."""
+    text = unicodedata.normalize("NFKC", contact_raw).lower()
+    text = text.replace("先生", " ").replace("女士", " ")
+    return tuple(sorted(t for t in _NAME_SEP.split(text) if t and t not in _NAME_SALUTATIONS))
+
+
+def _person_key(contact_raw: str) -> str:
+    """Same person = same full name. Two people who only share a surname
+    stay apart, and a bare surname never folds into a full name (a duplicate
+    is one click to merge in the CRM, a wrong merge is silent)."""
+    tokens = _person_tokens(contact_raw)
+    if tokens:
+        return " ".join(tokens)
+    # Salutation only ("Mr."): its own contact, keyed by what was written.
+    return "~" + "".join(_NAME_SEP.split(unicodedata.normalize("NFKC", contact_raw).lower()))
+
+
+def _run_together_aliases(keys: list[str]) -> dict[str, str]:
+    """`Zhangwei` -> `wei zhang` when exactly one two-word name in the same
+    company has the same letters once the separators are removed."""
+    pairs: dict[str, set[str]] = {}
+    for k in keys:
+        parts = k.split(" ")
+        if len(parts) == 2 and not k.startswith("~"):
+            for joined in (parts[0] + parts[1], parts[1] + parts[0]):
+                pairs.setdefault(joined, set()).add(k)
+    aliases = {}
+    for k in keys:
+        if " " not in k and not k.startswith("~") and len(pairs.get(k, ())) == 1:
+            aliases[k] = next(iter(pairs[k]))
+    return aliases
+
+
 def _is_spelled_out(raw_name: str) -> bool:
     """True when `raw_name` carries more than a bare surname: a given name as
     its own word (`Zhang Wei`), or run together after a recognised surname
@@ -176,6 +222,12 @@ class Company:
     first_visit: str = ""
     last_visit: str = ""
     visit_count: int = 0
+    # display_name is what the Excel files write, the most common spelling (Chinese stays Chinese,
+    # English stays English). written_names are all spellings the files use, most common first;
+    # list_names are the names the customer list holds for the same company. Both help find the
+    # company in the CRM when it is already there under another language.
+    written_names: list[str] = field(default_factory=list)
+    list_names: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -212,11 +264,34 @@ def _add_distinct(values: list[str], value: str) -> None:
         values.append(value)
 
 
+def _merge_run_together(contacts: dict, raw_names: dict, links: dict) -> None:
+    by_company: dict[str, list[str]] = {}
+    for key, c in contacts.items():
+        by_company.setdefault(c.company_key, []).append(key)
+    rename: dict[str, str] = {}
+    for company_key, keys in by_company.items():
+        prefix = company_key + "::"
+        aliases = _run_together_aliases([k[len(prefix):] for k in keys])
+        for short, full in aliases.items():
+            rename[prefix + short] = prefix + full
+    for old, new in rename.items():
+        src, dst = contacts.pop(old), contacts[new]
+        for attr in ("phones", "office_phones", "emails", "spellings", "owners"):
+            for value in getattr(src, attr):
+                _add_distinct(getattr(dst, attr), value)
+        raw_names[new].update(raw_names.pop(old))
+    for visit_key, (ck, kk) in list(links.items()):
+        if kk in rename:
+            links[visit_key] = (ck, rename[kk])
+
+
 def match(visits: list[Visit]) -> MatchResult:
     result = MatchResult()
     namer = _CompanyNamer(visits)
     result._namer = namer
     raw_names: dict[str, Counter] = {}
+    written: dict[str, Counter] = {}
+    list_names: dict[str, list[str]] = {}
     cities: dict[str, Counter] = {}
     dealer_keys: set[str] = set()
     contact_raw_names: dict[str, Counter] = {}
@@ -231,6 +306,11 @@ def match(visits: list[Visit]) -> MatchResult:
             continue
         company_key = namer.key_for(v.customer_raw, v.city, v.contact_raw)
         raw_names.setdefault(company_key, Counter())[v.customer_raw] += 1
+        written.setdefault(company_key, Counter())[v.extra.get("customer_as_written") or v.customer_raw] += 1
+        known = v.extra.get("company_match") or {}
+        if known.get("score", 0) >= 0.9:
+            for name in (known.get("cn"), known.get("en")):
+                _add_distinct(list_names.setdefault(company_key, []), name or "")
         if v.city:
             cities.setdefault(company_key, Counter())[v.city] += 1
         if v.kind == "dealer":
@@ -248,11 +328,13 @@ def match(visits: list[Visit]) -> MatchResult:
                 latest[company_key][name] = (when, value)
 
         contact_key = None
-        if v.contact_raw:
-            contact_key = f"{company_key}::{_surname_key(v.contact_raw)}"
+        if v.contact_raw and looks_like_person_name(v.contact_raw):  # a date or a bare "Mr." is no contact
+            contact_key = f"{company_key}::{_person_key(v.contact_raw)}"
             contact_raw_names.setdefault(contact_key, Counter())[v.contact_raw] += 1
             c = contacts.setdefault(contact_key, Contact(key=contact_key, company_key=company_key, full_name=""))
             _add_distinct(c.phones, v.phone_raw)
+            for more in (v.extra.get("phone_more") or "").split(";"):  # a cell that holds several numbers
+                _add_distinct(c.phones, more)
             _add_distinct(c.office_phones, v.office_phone)
             _add_distinct(c.emails, v.email)
             _add_distinct(c.spellings, v.contact_raw)
@@ -265,7 +347,9 @@ def match(visits: list[Visit]) -> MatchResult:
         # common SPELLED-OUT rendering when the group has one at all.
         seen_dates = sorted(dates.get(key, []))
         result.companies[key] = Company(
-            key=key, display_name=_canonical(counter),
+            key=key, display_name=_canonical(written.get(key) or counter),
+            written_names=[n for n, _ in (written.get(key) or counter).most_common()],
+            list_names=list_names.get(key, []),
             city=cities[key].most_common(1)[0][0] if key in cities else "",
             is_dealer=key in dealer_keys,
             potential=latest.get(key, {}).get("potential", ("", ""))[1],
@@ -274,6 +358,8 @@ def match(visits: list[Visit]) -> MatchResult:
             first_visit=seen_dates[0] if seen_dates else "", last_visit=seen_dates[-1] if seen_dates else "",
             visit_count=sum(counter.values()),
         )
+
+    _merge_run_together(contacts, contact_raw_names, result.links)
 
     for key, counter in contact_raw_names.items():
         contacts[key].full_name = _canonical(counter)

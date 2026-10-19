@@ -19,12 +19,18 @@ Where each column lands (README.md has the same table for a reader):
   key plan + summary        one weekly-report note per sheet, dated Friday of
                             that week and linked to no company
 
-Every write carries `source_system` + a stable `source_id`, so a second run
-of the same file converges instead of duplicating.
+Every write carries `source_system` + a source_id built from what the record
+says, not where it sat: `visit:<owner>:<date>:<customer>:<n>` (n = which of that
+day's visits to that customer), tasks `<visit id>#T<hash of the note text>`, week
+notes `week:<owner>:<year>-W<cw>`. A later file that repeats earlier weeks, or the
+same file saved again, converges instead of duplicating. Records written under the
+old file:sheet:row ids are found by those ids and by the row each one stored.
 """
 import csv
+import hashlib
 import io
 import re
+from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -32,6 +38,7 @@ from zoneinfo import ZoneInfo
 from . import when
 from common.client import ApiError, MargenceClient
 from common.fields import ensure_field
+from excel.split import fold_key, phone_e164, phone_type
 from .match import Company, Contact, MatchResult
 from .reader import Note, Parsed, Visit, Week
 
@@ -96,37 +103,138 @@ def companies_csv(result: MatchResult, only: set[str] | None = None) -> str:
     return buf.getvalue()
 
 
-def _fold(name: str) -> str:
-    return " ".join(name.lower().split())
+_CJK = re.compile(r"[\u4e00-\u9fff]")
+
+
+def _crm_names(company: Company) -> list[str]:
+    """Every name the company may already be filed under in the CRM, the Excel's spelling first."""
+    out: list[str] = []
+    for name in [company.display_name, *company.written_names, *company.list_names]:
+        if name and name not in out:
+            out.append(name)
+    return out
+
+
+def other_language_name(shown: str, written_names: list[str]) -> str:
+    """The name the Excel files wrote in the other language than `shown` (Chinese against Latin), or "".
+    Never translated: only a spelling that actually stands in a file."""
+    for name in written_names:
+        if bool(_CJK.search(name)) != bool(_CJK.search(shown)):
+            return name
+    return ""
 
 
 def normalize_phone(raw: str) -> str:
-    """China numbers to E.164 (`136 0000 5767` -> `+8613600005767`,
-    `021-00009057` -> `+862100009057`); anything else as written."""
-    digits = re.sub(r"\D", "", raw)
-    if raw.strip().startswith("+"):
-        return "+" + digits
-    if digits.startswith("86") and len(digits) == 13:
-        return "+" + digits
-    if len(digits) == 11 and digits.startswith("1"):
-        return "+86" + digits
-    if digits.startswith("0") and 10 <= len(digits) <= 12:
-        return "+86" + digits[1:]
-    return raw.strip()
+    """The shared rule (excel.split.phone_e164): Chinese numbers without a country code become +86,
+    a number with its own country code keeps it; anything it cannot place is returned as written."""
+    return phone_e164(raw) or raw.strip()
+
+
+def _existing_id(exc: ApiError, code: str) -> str | None:
+    try:
+        body = exc.response.json()
+    except ValueError:
+        return None
+    if exc.response.status_code == 409 and body.get("code") == code:
+        return (body.get("details") or {}).get("existing_id")
+    return None
 
 
 def contact_phones(contact: Contact) -> list[dict]:
     phones = []
-    for raw, kind in [(p, "mobile") for p in contact.phones] + [(p, "work") for p in contact.office_phones]:
+    for raw in list(contact.phones) + list(contact.office_phones):
         number = normalize_phone(raw)
-        if number and number not in (p["phone"] for p in phones):
-            phones.append({"phone": number, "phone_type": kind, "is_primary": not phones, "position": len(phones)})
+        # The CRM only takes numbers with a country prefix; one we cannot place (a
+        # local number without area code, a WeChat ID) stays in the visit's text and raw row.
+        if not number.startswith("+"):
+            continue
+        if number not in (p["phone"] for p in phones):
+            phones.append({"phone": number, "phone_type": phone_type(number), "is_primary": not phones, "position": len(phones)})
     return phones
 
 
+_EMAIL = re.compile(r"[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
+
+
 def contact_emails(contact: Contact) -> list[dict]:
+    """Every address the cells hold (a cell can carry two, or text around one); text
+    that holds no address stays in the visit's raw row only."""
+    found = []
+    for cell in contact.emails:
+        for e in _EMAIL.findall(cell or ""):
+            if e.lower() not in (f.lower() for f in found):
+                found.append(e)
     return [{"email": e, "email_type": "work", "is_primary": i == 0, "position": i}
-            for i, e in enumerate(contact.emails)]
+            for i, e in enumerate(found)]
+
+
+def task_id(visit: Visit, note: Note) -> str:
+    text = " ".join(note.text.lower().split())
+    return f"{visit.source_id}#T{hashlib.sha1(text.encode()).hexdigest()[:10]}"
+
+
+def _one_line(text: str) -> str:
+    """A subject is one line: line breaks and runs of spaces in a cell become single spaces."""
+    return " ".join(str(text).split())
+
+
+def _task_subject(note: Note) -> str:
+    return _one_line(("Waiting — " if note.highlight == "yellow" else "") + note.text)
+
+
+_WEEK_SUBJECT = re.compile(r"^Weekly report CW(\d+) (\d{4}) — (.*)$")
+
+
+class Existing:
+    """The activities the CRM already holds for this source_system, findable by the id the
+    current code would give them and by the older file:sheet:row ids."""
+
+    def __init__(self, activities):
+        self.by_id: dict[str, dict] = {}
+        self.by_content: dict[str, dict] = {}
+        self.tasks: dict[str, list[dict]] = defaultdict(list)  # visit id -> its tasks
+        rows = []
+        for a in activities:
+            sid = a.get("source_id") or ""
+            self.by_id[sid] = a
+            if a.get("kind") == "task":
+                if "#" in sid:
+                    self.tasks[sid.split("#")[0]].append(a)
+                continue
+            raw = a.get("raw") or {}
+            if row := raw.get("visit_list_row"):
+                rows.append((row.get("workbook", ""), row.get("sheet", ""), row.get("excel_row_start", 0), row, a))
+            elif week := raw.get("visit_list_week"):
+                self.by_content.setdefault(f"week:{fold_key(week.get('owner'))}:{week.get('year')}-W{week.get('cw')}", a)
+            elif m := _WEEK_SUBJECT.match(a.get("subject") or ""):
+                self.by_content.setdefault(f"week:{fold_key(m.group(3))}:{m.group(2)}-W{m.group(1)}", a)
+        seen: dict = {}
+        for workbook, sheet, _, row, a in sorted(rows, key=lambda r: r[:3]):
+            if not row.get("date_iso"):
+                continue
+            key = (workbook, sheet, fold_key(row.get("owner")), row["date_iso"], fold_key(row.get("customer_raw")))
+            n = seen.get(key, 0)
+            seen[key] = n + 1
+            self.by_content.setdefault(f"visit:{key[2]}:{key[3]}:{key[4]}:{n}", a)
+
+    def find(self, *ids: str) -> dict | None:
+        for i in ids:
+            if i in self.by_id:
+                return self.by_id[i]
+        return self.by_content.get(ids[0])
+
+    def task(self, visit: Visit, note: Note, found: dict | None) -> dict | None:
+        """The task already written for this note, under the new id or an old row-based one."""
+        if hit := self.by_id.get(task_id(visit, note)):
+            return hit
+        for prefix in {visit.visit_key, (found or {}).get("source_id", "")}:
+            for t in self.tasks.get(prefix, ()):
+                if t.get("subject") == _task_subject(note):
+                    return t
+        return None
+
+    def add(self, source_id: str, activity: dict) -> None:
+        self.by_id[source_id] = activity
 
 
 def task_notes(visit: Visit) -> list[Note]:
@@ -153,11 +261,12 @@ def visit_subject(visit: Visit, company: Company | None) -> str:
     name = company.display_name if company else visit.customer_raw
     where = f" ({visit.city})" if visit.city else ""
     if visit.kind == "exhibition":
-        return f"Exhibition — {visit.customer_raw}{where}"
+        return _one_line(f"Exhibition — {visit.customer_raw}{where}")
     if visit.kind == "internal":
-        return f"Internal — {visit.purpose or visit.city}"
+        said = next((t for t in (visit.purpose, visit.customer_raw, visit.city) if re.search(r"\w", t or "")), "(no description)")
+        return _one_line(f"Internal — {said}")
     prefix = "Cancelled visit" if visit.status == "cancelled" else "Visit"
-    return f"{prefix} — {name}{where}"
+    return _one_line(f"{prefix} — {name}{where}")
 
 
 def visit_body(visit: Visit, company: Company | None, planned: list[str] = ()) -> str:
@@ -166,13 +275,15 @@ def visit_body(visit: Visit, company: Company | None, planned: list[str] = ()) -
     reach = [b for b in (visit.phone_raw, visit.office_phone and f"office {visit.office_phone}", visit.email) if b]
     if visit.contact_raw:
         lines.append(f"Met: {visit.contact_raw}" + (f" ({', '.join(reach)})" if reach else ""))
-    facts = [f"Location: {visit.city}" if visit.city else ""]
+    facts = [f"Location: {visit.city}" if visit.city else "",
+             f"ERP customer code: {visit.extra['customer_code']}" if visit.extra.get("customer_code") else ""]
     if visit.potential:
         facts.append(f"Potential: {visit.potential}")
     if visit.customer_type_raw:
         facts.append(f"Customer: {visit.customer_type_raw}")
-    if company and visit.customer_raw != company.display_name:
-        facts.append(f"written as \"{visit.customer_raw}\"")
+    written = visit.extra.get("customer_as_written") or visit.customer_raw
+    if company and written != company.display_name:
+        facts.append(f"written as \"{written}\"")
     if any(facts):
         lines.append(" · ".join(f for f in facts if f))
     if planned:
@@ -224,8 +335,8 @@ def default_task_cutoff(parsed: Parsed) -> str | None:
 
 def preview_companies(client: MargenceClient, result: MatchResult) -> dict:
     """The company CSV run a commit would make, previewed and never approved."""
-    by_name = {_fold(n) for n in client.company_id_by_name()}
-    missing = {k for k, c in result.companies.items() if _fold(c.display_name) not in by_name}
+    by_name = {fold_key(n) for n in client.company_id_by_name()}
+    missing = {k for k, c in result.companies.items() if not any(fold_key(n) in by_name for n in _crm_names(c))}
     if not missing:
         return {"disposition": {"already_present": len(result.companies)}, "rows_read": 0, "issues": []}
     source_ref = client.upload_csv("company", companies_csv(result, missing), "companies.csv")
@@ -266,6 +377,7 @@ class _Run:
         self.field_columns: dict[str, str] = {}  # Company attribute -> cf_ column
         self.me = client.get("/v1/me")["user"]["id"]
         self.plans = {(w.workbook, w.sheet): planned_days(w, result) for w in parsed.weeks}
+        self.existing = Existing(())
 
     def seat_for(self, name: str) -> str | None:
         return self.seats.get(when.fold_person(name)) if name else None
@@ -284,9 +396,13 @@ class _Run:
             self.field_columns[attr] = found["column_name"]
 
     def company_ids_by_name(self) -> dict[str, str]:
-        by_name = {_fold(n): i for n, i in self.client.company_id_by_name().items()}
-        return {k: by_name[_fold(c.display_name)] for k, c in self.result.companies.items()
-                if _fold(c.display_name) in by_name}
+        by_name = {fold_key(n): i for n, i in self.client.company_id_by_name().items()}
+        found = {}
+        for k, c in self.result.companies.items():
+            hit = next((n for n in _crm_names(c) if fold_key(n) in by_name), None)
+            if hit:
+                found[k] = by_name[fold_key(hit)]
+        return found
 
     def import_companies(self) -> None:
         """Only names the CRM does not hold EXACTLY go through the CSV import,
@@ -334,6 +450,11 @@ class _Run:
         created_now = bool(created_at) and datetime.fromisoformat(created_at) >= self.started
         if rep_seat and current.get("owner_id") == self.me and created_now:
             patch["owner_id"] = rep_seat
+        # The other language's name goes next to the one the CRM shows ("legal name", which the CRM
+        # search reads); one a person typed is never replaced.
+        other = other_language_name(current.get("display_name") or "", company.written_names)
+        if other and not current.get("legal_name"):
+            patch["legal_name"] = other
         patch = {k: v for k, v in patch.items() if current.get(k) != v}
         if not patch:
             return 0
@@ -343,33 +464,86 @@ class _Run:
     def import_contacts(self) -> None:
         self.emit("contacts_start", total=len(self.result.contacts))
         by_company: dict[str, dict[str, str]] = {}
+        mobiles: dict[str, dict[str, str]] = {}
         for i, (key, contact) in enumerate(self.result.contacts.items()):
             company_id = self.company_ids.get(contact.company_key)
             if not company_id:
                 continue
             if company_id not in by_company:
-                by_company[company_id] = {c["full_name"].strip().lower(): c["contact_id"]
+                by_company[company_id] = {fold_key(c["full_name"]): c["contact_id"]
                                           for c in self.client.contacts_for_company(company_id)}
-            existing_id = by_company[company_id].get(contact.full_name.strip().lower())
+            existing_id = by_company[company_id].get(fold_key(contact.full_name))
+            if not existing_id:
+                existing_id = self.contact_with_mobile(company_id, contact, mobiles)
             if existing_id:
                 self.contact_ids[key] = existing_id
                 self.report.contacts_updated += self.add_reachability(existing_id, contact)
             else:
-                self.contact_ids[key] = self.create_contact(contact, company_id)
-                by_company[company_id][contact.full_name.strip().lower()] = self.contact_ids[key]
-                self.report.contacts_created += 1
+                self.contact_ids[key], created = self.create_contact(contact, company_id)
+                by_company[company_id][fold_key(contact.full_name)] = self.contact_ids[key]
+                for p in contact_phones(contact):
+                    if p["phone_type"] == "mobile" and company_id in mobiles:
+                        mobiles[company_id].setdefault(p["phone"], self.contact_ids[key])
+                self.report.contacts_created += created
+                self.report.contacts_updated += not created  # an existing person, found by email
             self.emit("contacts_progress", done=i + 1, total=len(self.result.contacts))
 
-    def create_contact(self, contact: Contact, company_id: str) -> str:
+    def contact_with_mobile(self, company_id: str, contact: Contact, cache: dict) -> str | None:
+        """The contact this company already holds with one of this person's mobile numbers: a mobile belongs to one
+        person, so the same number at the same company is the same person written another way (pinyin and Chinese
+        spelling). Landlines and 400/800 lines are switchboards and never match."""
+        wanted = {p["phone"] for p in contact_phones(contact) if p["phone_type"] == "mobile"}
+        if not wanted:
+            return None
+        if company_id not in cache:
+            held = {}
+            for c in self.client.contacts_for_company(company_id):
+                for ph in self.client.get_contact(c["contact_id"]).get("phones") or []:
+                    if phone_type(ph["phone"]) == "mobile":
+                        held.setdefault(ph["phone"], c["contact_id"])
+            cache[company_id] = held
+        return next((cache[company_id][n] for n in wanted if n in cache[company_id]), None)
+
+    def create_contact(self, contact: Contact, company_id: str) -> tuple[str, bool]:
+        """(contact id, whether a new record was made)."""
         body = {"full_name": contact.full_name, "source": "import", "source_system": self.opts.source_system,
                 "phones": contact_phones(contact), "emails": contact_emails(contact)}
         if contact.owners:
             body["source_author_name"] = contact.owners[0]
             if seat := self.seat_for(contact.owners[0]):
                 body["owner_id"] = seat
-        created = self.client.create_contact(body)
-        self.client.link_employment(created["id"], company_id)
-        return created["id"]
+        created = True
+        try:
+            contact_id = self.client.create_contact(body)["id"]
+        except ApiError as exc:
+            existing = _existing_id(exc, "duplicate_email")
+            if not existing:
+                raise
+            held = self.client.get_contact(existing)
+            if fold_key(held.get("full_name")) == fold_key(contact.full_name):
+                # The same person met at two companies (or written two ways): that record is
+                # the contact, linked here too, and it learns the numbers this sheet adds.
+                contact_id, created = existing, False
+                self.add_reachability(existing, contact)
+            else:
+                # Somebody else's address (a shared mailbox, a colleague's): this person is
+                # created without it; the address stays in the visit's text.
+                taken = {e["email"].lower() for e in held.get("emails") or []}
+                free = [e for e in body["emails"] if e["email"].lower() not in taken]
+                body["emails"] = [{**e, "is_primary": i == 0, "position": i} for i, e in enumerate(free)]
+                try:
+                    contact_id = self.client.create_contact(body)["id"]
+                except ApiError as again:
+                    if not _existing_id(again, "duplicate_email"):
+                        raise
+                    body["emails"] = []
+                    contact_id = self.client.create_contact(body)["id"]
+        try:
+            self.client.link_employment(contact_id, company_id)
+        except ApiError as exc:
+            if exc.response.status_code != 409:  # already employed there: nothing to add
+                raise
+        return contact_id, created
 
     def add_reachability(self, contact_id: str, contact: Contact) -> int:
         """Adds the numbers and addresses the sheet knows and the record does
@@ -391,7 +565,17 @@ class _Run:
                                               "position": len(have_emails) + i} for i, e in enumerate(new_emails)]
         if not patch:
             return 0
-        self.client.patch(f"/v1/contacts/{contact_id}", patch)
+        try:
+            self.client.patch(f"/v1/contacts/{contact_id}", patch)
+        except ApiError as exc:
+            if not _existing_id(exc, "duplicate_email"):
+                raise
+            # Another contact holds one of the addresses (this person was made without it):
+            # keep the numbers, leave the address in the visit's text, and do not ask again as a change.
+            patch.pop("emails", None)
+            if not patch:
+                return 0
+            self.client.patch(f"/v1/contacts/{contact_id}", patch)
         return 1
 
     def log(self, payload: dict) -> tuple[bool, dict]:
@@ -407,6 +591,19 @@ class _Run:
             retry = {k: v for k, v in payload.items() if k not in ("meeting_status", "host_user_id")}
             return self.client.log_activity(retry)
 
+    def load_existing(self) -> None:
+        self.emit("existing_activities")
+        self.existing = Existing(a for a in self.client.paginate("/v1/activities", {"limit": 200})
+                                 if a.get("source_system") == self.opts.source_system)
+
+    def write(self, payload: dict, found: dict | None) -> tuple[bool, dict]:
+        """(created, activity): nothing is sent when the CRM already holds the record."""
+        if found:
+            return False, found
+        created, activity = self.log(payload)
+        self.existing.add(payload["source_id"], activity)
+        return created, activity
+
     def import_visits(self) -> None:
         datable = [v for v in self.parsed.visits if v.date_iso]
         self.report.activities_skipped_no_date = [v.visit_key for v in self.parsed.visits if not v.date_iso]
@@ -417,12 +614,13 @@ class _Run:
             company = self.result.companies.get(company_key) if company_key else None
             company_id = self.company_ids.get(company_key) if company_key else None
             contact_id = self.contact_ids.get(contact_key) if contact_key else None
-            created, _ = self.log(self.visit_payload(visit, company, company_id, contact_id))
+            found = self.existing.find(visit.source_id, visit.visit_key)
+            created, _ = self.write(self.visit_payload(visit, company, company_id, contact_id), found)
             self.report.activities_created += created
             self.report.activities_idempotent += not created
             if self.opts.tasks:
                 for note in task_notes(visit):
-                    self.log_task(visit, note, company, company_id, contact_id, cutoff)
+                    self.log_task(visit, note, company, company_id, contact_id, cutoff, found)
             self.emit("activity_progress", done=i + 1, total=len(datable),
                       created=self.report.activities_created, idempotent=self.report.activities_idempotent)
 
@@ -444,14 +642,14 @@ class _Run:
         links = ([{"entity_type": "contact", "entity_id": contact_id}] if contact_id else
                  [{"entity_type": "company", "entity_id": company_id}] if company_id else [])
         payload = {
-            **self.common(visit.visit_key, visit.owner),
+            **self.common(visit.source_id, visit.owner),
             "kind": kind,
             "subject": visit_subject(visit, company),
             "body": visit_body(visit, company, self.plans.get((visit.workbook, visit.sheet), {})
                                .get(company.key if company else "", [])),
             "occurred_at": when.visit_instant(visit, self.tz).isoformat(),
             "links": links,
-            "raw": {"visit_list_row": asdict(visit), "status": visit.status,
+            "raw": {"visit_list_row": asdict(visit), "legacy_key": visit.visit_key, "status": visit.status,
                     "company": company.display_name if company else None,
                     "time_of_day_recorded": False},
         }
@@ -461,8 +659,8 @@ class _Run:
                 payload["host_user_id"] = seat
         return payload
 
-    def log_task(self, visit: Visit, note: Note, company: Company | None, company_id: str | None,
-                 contact_id: str | None, cutoff: str | None) -> None:
+    def task_payload(self, visit: Visit, note: Note, company: Company | None, company_id: str | None,
+                     contact_id: str | None) -> dict:
         visit_day = date.fromisoformat(visit.date_iso)
         due = when.resolve_due(note.deadline, visit_day) or when.resolve_due(note.text, visit_day)
         follower = when.follow_up_owner(note.deadline) or visit.owner
@@ -473,9 +671,9 @@ class _Run:
         if note.deadline:
             lines.append(f"Deadline as written: \"{note.deadline}\"")
         payload = {
-            **self.common(f"{visit.visit_key}#K{note.excel_row}", visit.owner),
+            **self.common(task_id(visit, note), visit.owner),
             "kind": "task",
-            "subject": ("Waiting — " if note.highlight == "yellow" else "") + note.text,
+            "subject": _task_subject(note),
             "body": "\n".join(lines),
             "occurred_at": when.visit_instant(visit, self.tz).isoformat(),
             "links": [l for l in ([{"entity_type": "contact", "entity_id": contact_id}] if contact_id else []) +
@@ -485,7 +683,14 @@ class _Run:
             payload["due_at"] = when.day_instant(due.isoformat(), self.tz).isoformat()
         if seat := self.seat_for(follower):
             payload["assignee_id"] = seat
-        created, task = self.log(payload)
+        return payload
+
+    def log_task(self, visit: Visit, note: Note, company: Company | None, company_id: str | None,
+                 contact_id: str | None, cutoff: str | None, found: dict | None = None) -> None:
+        visit_day = date.fromisoformat(visit.date_iso)
+        due = when.resolve_due(note.deadline, visit_day) or when.resolve_due(note.text, visit_day)
+        payload = self.task_payload(visit, note, company, company_id, contact_id)
+        created, task = self.write(payload, self.existing.task(visit, note, found))
         if not created:
             self.report.tasks_idempotent += 1
             return
@@ -503,15 +708,15 @@ class _Run:
             # company. Each visit already says which day the plan put it on.
             # Dated at the end of the week it reports on.
             friday = (date.fromisoformat(week.monday_iso) + timedelta(days=4)).isoformat()
-            created, _ = self.log({
-                **self.common(week.week_key, week.owner),
+            created, _ = self.write({
+                **self.common(week.source_id, week.owner),
                 "kind": "note",
                 "subject": f"Weekly report CW{week.cw} {week.year} — {week.owner}",
                 "body": week_body(week),
                 "occurred_at": when.day_instant(friday, self.tz, time(17, 0)).isoformat(),
                 "links": [],
-                "raw": {"visit_list_week": asdict(week)},
-            })
+                "raw": {"visit_list_week": asdict(week), "legacy_key": week.week_key},
+            }, self.existing.find(week.source_id, week.week_key))
             self.report.weeks_created += created
             self.report.weeks_idempotent += not created
             self.emit("weeks_progress", done=i + 1, total=len(self.parsed.weeks))
@@ -529,6 +734,7 @@ def run(client: MargenceClient, parsed: Parsed, result: MatchResult, opts: Optio
     r.ensure_vocabulary()
     r.import_companies()
     r.import_contacts()
+    r.load_existing()
     r.import_visits()
     r.import_weeks()
     emit("done", report=r.report)

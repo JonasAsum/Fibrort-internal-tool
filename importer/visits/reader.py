@@ -11,10 +11,12 @@ and a deadline in column L. The year is not on the sheet; it is the last
 """
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 
 import openpyxl
+
+from excel.split import cell_text, fold_key
 
 MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
@@ -34,6 +36,16 @@ YELLOW_FILL = "FFFF00"
 # Rows 3-7 label their day "Monday", "Tue", ... ; the value is the offset from
 # that week's Monday.
 WEEKDAY_OFFSETS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
+
+
+def assign_ordinals(visits: list) -> None:
+    """Numbers visits that share owner, date and customer 0, 1, ... in the order given (one sheet)."""
+    seen: dict = {}
+    for v in visits:
+        n = seen.get(v.content_key, 0)
+        seen[v.content_key] = n + 1
+        v.key_ordinal = n
 
 
 @dataclass
@@ -68,13 +80,32 @@ class Visit:
     # Position among this sheet's visits on the same date, from 0. The sheet
     # states the order a rep went in but never a clock time.
     order_in_day: int = 0
+    # Columns the mock layout does not have (WeChat, industry, competitor,
+    # status ...), kept so the activity's raw row still holds every cell.
+    extra: dict = field(default_factory=dict)
+    # Which of the visits with the same owner, date and customer this is, in sheet
+    # order from 0 (set by assign_ordinals once a whole sheet is read).
+    key_ordinal: int = 0
 
     @property
     def visit_key(self) -> str:
+        """Where the visit sits in the file; identifies it inside one run, never across files."""
         return f"{self.workbook}:{self.sheet}:{self.excel_row_start}"
 
     @property
+    def content_key(self) -> tuple:
+        return (fold_key(self.owner), self.date_iso, fold_key(self.customer_raw))
+
+    @property
+    def source_id(self) -> str:
+        """The same visit in a later export of the file gets the same id, whatever the file is called."""
+        owner, day, customer = self.content_key
+        return f"visit:{owner}:{day}:{customer}:{self.key_ordinal}"
+
+    @property
     def kind(self) -> str:
+        if self.extra.get("kind") in ("internal", "exhibition"):  # the Excel reader already saw it is no customer
+            return self.extra["kind"]
         t = (self.customer_type_raw or "").strip().lower()
         if "exhibit" in t:
             return "exhibition"
@@ -126,7 +157,34 @@ class Week:
 
     @property
     def week_key(self) -> str:
+        """Where the week sits in the file; identifies it inside one run only."""
         return f"{self.workbook}:{self.sheet}:week"
+
+    @property
+    def source_id(self) -> str:
+        return f"week:{fold_key(self.owner)}:{self.year}-W{self.cw}"
+
+
+def merge_weeks(weeks: list) -> list:
+    """One week per (owner, ISO year, CW): the plan and summary lines of later copies are
+    added to the first one's."""
+    merged: dict = {}
+    for w in weeks:
+        first = merged.get(w.source_id)
+        if first is None:
+            merged[w.source_id] = replace(w, days=[replace(d) for d in w.days], summary=list(w.summary))
+            continue
+        by_date = {d.date_iso: d for d in first.days}
+        for d in w.days:
+            mine = by_date.get(d.date_iso)
+            if mine is None:
+                first.days.append(replace(d))
+                by_date[d.date_iso] = first.days[-1]
+            elif d.plan and d.plan not in mine.plan:
+                mine.plan = f"{mine.plan}; {d.plan}" if mine.plan else d.plan
+        first.days.sort(key=lambda d: d.date_iso)
+        first.summary += [line for line in w.summary if line not in first.summary]
+    return list(merged.values())
 
 
 @dataclass
@@ -181,28 +239,24 @@ def _header_row(ws) -> int:
     raise ValueError(f"{ws.title}: no 'Date' header row found in the first 20 rows")
 
 
-def _text(value) -> str:
-    return str(value).strip() if value is not None else ""
-
-
 def parse_week(ws, workbook_name: str, year: int, cw: int, header_row: int) -> Week:
     monday = cw_monday(year, cw)
     days, summary = [], []
     for r in range(1, header_row):
-        label = _text(ws.cell(row=r, column=1).value)
+        label = cell_text(ws.cell(row=r, column=1).value)
         offset = WEEKDAY_OFFSETS.get(label[:3].lower())
         if offset is not None:
             days.append(DayPlan(weekday=label, date_iso=(monday + timedelta(days=offset)).isoformat(),
-                                plan=_text(ws.cell(row=r, column=2).value)))
-        line = _text(ws.cell(row=r, column=10).value)
+                                plan=cell_text(ws.cell(row=r, column=2).value)))
+        line = cell_text(ws.cell(row=r, column=10).value)
         if r > 1 and line:  # row 1 holds the "Summary" heading itself
             summary.append(line)
-    return Week(workbook=workbook_name, sheet=ws.title, owner=_text(ws.cell(row=1, column=2).value),
+    return Week(workbook=workbook_name, sheet=ws.title, owner=cell_text(ws.cell(row=1, column=2).value),
                 year=year, cw=cw, monday_iso=monday.isoformat(), days=days, summary=summary)
 
 
 def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
-    owner = _text(ws.cell(row=1, column=2).value)
+    owner = cell_text(ws.cell(row=1, column=2).value)
     cw_match = SHEET_CW.search(ws.title)
     if not cw_match:
         raise ValueError(f"{workbook_name}/{ws.title}: sheet name carries no CW/Week number")
@@ -217,7 +271,7 @@ def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
         end = (starts[i + 1] - 1) if i + 1 < len(starts) else ws.max_row
         cells = [ws.cell(row=start, column=c).value for c in range(1, 11)]
         date_raw, city, customer_raw, potential, ctype_raw, contact_raw, phone_raw, office, email, purpose = (
-            _text(v) for v in cells
+            cell_text(v) for v in cells
         )
         notes = []
         for r in range(start, end + 1):
@@ -225,7 +279,7 @@ def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
             if k.value is None or not str(k.value).strip():
                 continue
             notes.append(Note(text=str(k.value).strip(), highlight=_fill_highlight(k),
-                              deadline=_text(l.value), excel_row=r))
+                              deadline=cell_text(l.value), excel_row=r))
         date_iso = parse_date(date_raw, year)
         day = date_iso or date_raw
         order = seen_per_day.get(day, 0)
@@ -238,6 +292,7 @@ def parse_sheet(ws, workbook_name: str, year: int) -> tuple[list[Visit], Week]:
             contact_raw=contact_raw, phone_raw=phone_raw, office_phone=office, email=email,
             purpose=purpose, notes=notes, order_in_day=order,
         ))
+    assign_ordinals(visits)
     return visits, parse_week(ws, workbook_name, year, cw, header_row)
 
 
@@ -260,4 +315,5 @@ def parse_paths(paths: list[str]) -> Parsed:
         one = parse_workbook(p)
         out.visits.extend(one.visits)
         out.weeks.extend(one.weeks)
+    out.weeks = merge_weeks(out.weeks)
     return out

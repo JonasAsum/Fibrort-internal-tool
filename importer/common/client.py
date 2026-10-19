@@ -118,7 +118,7 @@ class MargenceClient:
         """Upload, preview, and commit one CSV. Returns the final report."""
         source_ref = self.upload_csv(object_, csv_text, filename)
         run_id = self.create_import_run(object_, source_ref, mapping, source_key, on_duplicate)
-        report = self.wait_for_report(run_id)
+        self.wait_for_report(run_id)
         self.approve_import_run(run_id)
         self.wait_for_run_status(run_id, {"complete", "failed"})
         return self.get(f"/v1/imports/{run_id}/report")
@@ -153,7 +153,8 @@ class MargenceClient:
     # ---- workspace vocabulary ----
 
     def seats_by_name(self) -> dict[str, str]:
-        return {u["display_name"]: u["id"] for u in self.paginate("/v1/users", {"limit": 200})
+        # an invited member is a seat too: work can be assigned to a rep who has not signed in yet
+        return {u["display_name"]: u["id"] for u in self.paginate("/v1/users", {"limit": 200, "include_invited": "true"})
                 if u.get("display_name")}
 
     def custom_fields(self, object_: str) -> list[dict]:
@@ -169,3 +170,29 @@ class MargenceClient:
         200 the API answers when (source_system, source_id) already exists."""
         status, activity = self.post_status("/v1/activities", json=body)
         return status == 201, activity
+
+    # ---- deals and offers ----
+
+    def default_stage(self) -> tuple[str, str]:
+        """(pipeline_id, stage_id): the default pipeline's first open stage."""
+        pipelines = list(self.paginate("/v1/pipelines", {"limit": 200}))
+        pipeline = next((p for p in pipelines if p.get("is_default")), pipelines[0])
+        stages = sorted((s for s in pipeline.get("stages") or [] if s.get("semantic", "open") == "open"),
+                        key=lambda s: s["position"])
+        return pipeline["id"], stages[0]["id"]
+
+    def list_deals(self, params: dict | None = None) -> list[dict]:
+        return list(self.paginate("/v1/deals", {"limit": 200, **(params or {})}))
+
+    def create_deal(self, body: dict) -> dict:
+        return self.post("/v1/deals", json=body)
+
+    def deal_offers(self, deal_id: str) -> list[dict]:
+        return list(self.paginate(f"/v1/deals/{deal_id}/offers", {"limit": 200}))
+
+    def create_offer(self, deal_id: str, body: dict) -> dict:
+        return self.post(f"/v1/deals/{deal_id}/offers", json=body)
+
+    def offer_action(self, offer_id: str, action: str, body: dict | None = None) -> dict:
+        """action: send | reject"""
+        return self.post(f"/v1/offers/{offer_id}/{action}", json=body)

@@ -53,7 +53,7 @@ INTERNAL = {"fibrort.com", "fibrort.org"}
 # helpers
 # ---------------------------------------------------------------------------------------------
 
-def norm(s: str | None) -> str:
+def text_key(s: str | None) -> str:
     """Compare text as printed: full-width forms folded (，→ ,), case and all whitespace ignored."""
     return re.sub(r"\s+", "", unicodedata.normalize("NFKC", s or "")).casefold()
 
@@ -89,7 +89,7 @@ def amount_forms(minor: int) -> list[str]:
     forms = [f"{v:,.2f}", f"{v:.2f}"]
     if minor % 100 == 0:
         forms += [f"{v:,.0f}", f"{int(v)}"]
-    return [norm(f) for f in forms]
+    return [text_key(f) for f in forms]
 
 
 def domain_of(addr: str) -> str:
@@ -102,9 +102,9 @@ def on_domain(addr: str, domains) -> str | None:
 
 
 def ref_forms(key: str) -> list[str]:
-    forms = [norm(key)]
+    forms = [text_key(key)]
     if key.upper().startswith("SO"):  # Chinese order confirmations print SO as S0
-        forms.append(norm("S0" + key[2:]))
+        forms.append(text_key("S0" + key[2:]))
     return forms
 
 
@@ -178,7 +178,7 @@ def _read_message(msg, folder: str, src: str, pdfs: dict) -> dict:
             sha = hashlib.sha256(data).hexdigest()
             atts[sha] = name
             if sha not in pdfs and (name.lower().endswith(".pdf") or part.get_content_type() == "application/pdf"):
-                pdfs[sha] = norm(_pdf_text(data))
+                pdfs[sha] = text_key(_pdf_text(data))
         elif part.get_content_maintype() == "text":
             texts.append(_decode_part(part))
     subject = re.sub(r"\s+", " ", _header(msg, "Subject")).strip()
@@ -190,7 +190,7 @@ def _read_message(msg, folder: str, src: str, pdfs: dict) -> dict:
     prose = EMAIL_RE.sub(" ", " ".join([subject, names, body, " ".join(atts.values())]))
     return {"id": mid, "src": src, "folders": [folder], "subject": subject, "date": date,
             "from": (parties["From"] or [("", "")])[0], "to": parties["To"], "cc": parties["Cc"],
-            "text": norm(" ".join([prose, addrs, body])), "prose": norm(prose), "words": words(prose),
+            "text": text_key(" ".join([prose, addrs, body])), "prose": text_key(prose), "words": words(prose),
             "phones": phone_chunks(body), "atts": atts}
 
 
@@ -277,7 +277,7 @@ class Archive:
 
     def name_in(self, token: str, mails) -> dict | None:
         """A mail whose prose has this name part: a whole word for Latin, a substring for Chinese."""
-        t = norm(token)
+        t = text_key(token)
         for m in mails:
             if (t in m["prose"]) if CJK.search(t) else (t in m["words"]):
                 return m
@@ -326,29 +326,29 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
         own = [m for e in ct["emails"] for m in arc.sent_by.get(e, [])]
         part = list({id(m): m for e in ct["emails"] for m in arc.with_addr.get(e, [])}.values())
         if not part:  # only on a forwarded thread's quoted Cc/To line: that line is where the name is written
-            part = [m for m in arc.mails if any(norm(e) in m["text"] for e in ct["emails"])]
+            part = [m for m in arc.mails if any(text_key(e) in m["text"] for e in ct["emails"])]
         for e in ct["emails"]:
             if e in arc.header_addrs:
                 F(rec, "email", e, VERIFIED, f"in the headers of {len(arc.with_addr[e])} mails")
-            elif arc.anywhere(norm(e)):
-                F(rec, "email", e, WEAK, "only in a mail text, never in a From/To/Cc header: " + where(arc.anywhere(norm(e))))
+            elif arc.anywhere(text_key(e)):
+                F(rec, "email", e, WEAK, "only in a mail text, never in a From/To/Cc header: " + where(arc.anywhere(text_key(e))))
             else:
                 F(rec, "email", e, NOT_FOUND, "appears nowhere in the archive")
         if not ct["mailbox"] and "@" not in ct["full_name"]:
             shown = EMAIL_RE.sub(" ", " ".join(n for m in part for n, a in [m["from"]] + m["to"] + m["cc"]
                                                if a in ct["emails"]))
             for tok in re.findall(r"[一-鿿]+|[^\W\d_]+", ct["full_name"]):
-                t = norm(tok)
+                t = text_key(tok)
                 if len(t) < 2:
                     continue  # an initial proves nothing either way
-                if (t in norm(shown)) if CJK.search(t) else (t in words(shown)):
+                if (t in text_key(shown)) if CJK.search(t) else (t in words(shown)):
                     F(rec, "name", tok, VERIFIED, "the display name used with this address")
                 elif arc.name_in(tok, own):
                     F(rec, "name", tok, VERIFIED, "in their own mail: " + where(arc.name_in(tok, own)))
                 elif arc.name_in(tok, part):
                     F(rec, "name", tok, WEAK, "only in a mail they took part in, not their own: "
                       + where(arc.name_in(tok, part)))
-                elif any(t in norm(e.split("@")[0]) for e in ct["emails"]):
+                elif any(t in text_key(e.split("@")[0]) for e in ct["emails"]):
                     # first.last@ with no display name anywhere: a reading of the address, accepted but marked
                     F(rec, "name", tok, WEAK, "spelled from the address; no mail shows this name")
                 else:
@@ -369,7 +369,7 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
             else:
                 F(rec, "phone", p["phone"], NOT_FOUND, "this number appears nowhere in the archive")
         if ct.get("title"):
-            t = norm(ct["title"])
+            t = text_key(ct["title"])
             if arc.in_mails(t, own):
                 F(rec, "title", ct["title"], VERIFIED, "in their own mail: " + where(arc.in_mails(t, own)))
             elif arc.anywhere(t):
@@ -385,10 +385,10 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
                 F(rec, "company", ct["company"], VERIFIED, "their address is on the company's domain")
             elif ct["internal"] and all(domain_of(e) in INTERNAL for e in ct["emails"]):
                 F(rec, "company", ct["company"], VERIFIED, "FIBRO address; the entity is named in their signature"
-                  if arc.in_mails(norm(ct["company"]), own) else "FIBRO address")
+                  if arc.in_mails(text_key(ct["company"]), own) else "FIBRO address")
             elif any(set(m["folders"]) & set(co.get("folders") or []) for m in part):
                 F(rec, "company", ct["company"], VERIFIED, "their mails are filed in the company's folder")
-            elif arc.in_mails(norm(ct["company"]), own):
+            elif arc.in_mails(text_key(ct["company"]), own):
                 F(rec, "company", ct["company"], VERIFIED, "the company is named in their own mail")
             else:
                 F(rec, "company", ct["company"], NOT_FOUND, "no domain, folder or signature ties them to it")
@@ -415,14 +415,14 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
             users = [a for a in arc.header_addrs if on_domain(a, [d])]
             if users:
                 F(rec, "domain", d, VERIFIED, f"used by {', '.join(sorted(users)[:3])}")
-            elif arc.anywhere("@" + norm(d)):
-                F(rec, "domain", d, WEAK, "only on a forwarded thread's quoted header lines: " + where(arc.anywhere("@" + norm(d))))
+            elif arc.anywhere("@" + text_key(d)):
+                F(rec, "domain", d, WEAK, "only on a forwarded thread's quoted header lines: " + where(arc.anywhere("@" + text_key(d))))
             else:
                 F(rec, "domain", d, NOT_FOUND, "no sender or recipient uses it")
         for field, value in (("legal name", co.get("legal_name")), ("legal name (EN)", co.get("legal_name_en"))):
             if not value:
                 continue
-            t = norm(value)
+            t = text_key(value)
             hit = arc.in_mails(t, mails)
             if hit:
                 F(rec, field, value, VERIFIED, "in the company's own mail or PDF: " + where(hit))
@@ -436,9 +436,9 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
             F(rec, "name", name, VERIFIED, "the name of its mail folder")
         elif letters and any(letters in re.sub(r"[^a-z0-9]", "", d) for d in co.get("domains") or []):
             F(rec, "name", name, VERIFIED, "spelled from its domain")
-        elif arc.in_mails(norm(name), mails):
-            F(rec, "name", name, VERIFIED, "in the company's own mail: " + where(arc.in_mails(norm(name), mails)))
-        elif any(norm(name) in norm(v) for v in (co.get("legal_name"), co.get("legal_name_en")) if v):
+        elif arc.in_mails(text_key(name), mails):
+            F(rec, "name", name, VERIFIED, "in the company's own mail: " + where(arc.in_mails(text_key(name), mails)))
+        elif any(text_key(name) in text_key(v) for v in (co.get("legal_name"), co.get("legal_name_en")) if v):
             F(rec, "name", name, VERIFIED, "a part of its legal name")
         else:
             F(rec, "name", name, NOT_FOUND, "not its folder, not its domain, not in its mails")
@@ -480,15 +480,15 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
                 F(rec, label, f"{ln.get('qty')} x {ln.get('unit_price_minor', 0) / 100:,.2f}", MANUAL, manual_note)
                 continue
             price_ok = any(f in t for t in readable for f in amount_forms(ln.get("unit_price_minor") or 0))
-            model_ok = not ln.get("model") or any(norm(ln["model"]) in t for t in readable)
+            model_ok = not ln.get("model") or any(text_key(ln["model"]) in t for t in readable)
             F(rec, label, f"{ln.get('qty')} x {ln.get('unit_price_minor', 0) / 100:,.2f}",
               VERIFIED if price_ok and model_ok else NOT_FOUND,
               "price and model in its PDF" if price_ok and model_ok else
               f"not in its PDF: {'price' if not price_ok else ''} {'model' if not model_ok else ''}".strip())
         if d.get("company"):
             co = companies.get(d["company"], {})
-            names = [norm(v) for v in (co.get("legal_name"), co.get("legal_name_en"), d["company"], *(co.get("parties") or []))
-                     if v and len(norm(v)) >= 4]
+            names = [text_key(v) for v in (co.get("legal_name"), co.get("legal_name_en"), d["company"], *(co.get("parties") or []))
+                     if v and len(text_key(v)) >= 4]
             msgs = [arc.by_id[m] for m in d["messages"] if m in arc.by_id]
             if any(n in t for t in readable for n in names):
                 F(rec, "company", d["company"], VERIFIED, "named in its document")
@@ -508,7 +508,7 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
             F(rec, "exists", m["message_id"], NOT_FOUND, "no mail with this Message-ID in the archive")
             continue
         problems = []
-        if norm(raw["subject"]) != norm(m["subject"]):
+        if text_key(raw["subject"]) != text_key(m["subject"]):
             problems.append(f"subject in the archive: {raw['subject'][:80]!r}")
         if raw["date"] and m["date_iso"] and datetime.fromisoformat(raw["date"]) != datetime.fromisoformat(m["date_iso"]):
             problems.append(f"date in the archive: {raw['date']}")
@@ -534,9 +534,9 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
                 ev = f"a participant writes from {dom}"
             elif set(raw["folders"]) & set(co.get("folders") or []):
                 ev = "filed in the company's folder"
-            elif any(norm(d) in raw["text"] for d in doms):
+            elif any(text_key(d) in raw["text"] for d in doms):
                 ev = "its domain appears in the mail (forwarded / quoted)"
-            elif any(v and len(norm(v)) >= 4 and (norm(v) in raw["text"] or any(norm(v) in arc.pdfs.get(s, "") for s in raw["atts"]))
+            elif any(v and len(text_key(v)) >= 4 and (text_key(v) in raw["text"] or any(text_key(v) in arc.pdfs.get(s, "") for s in raw["atts"]))
                      for v in (co.get("legal_name"), co.get("legal_name_en"), m["company"], *(co.get("parties") or []))):
                 ev = "the company is named in the mail or its PDF"
             elif m.get("deal_key") and plan.deals.get(m["deal_key"], {}).get("company") == m["company"]:
@@ -587,7 +587,7 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
               "hand-written evidence, no quote to check" if evidence else "no evidence given")
             return
         for e in evidence:
-            q = norm(e.get("quote"))
+            q = text_key(e.get("quote"))
             if e.get("scan"):
                 F(rec, "quote", e["quote"][:70], MANUAL, "read from a scan (no text layer): both readings agreed or Jonas checked")
             elif e.get("message_id"):
@@ -609,7 +609,7 @@ def check_source(plan, extracted: dict, enrichment: dict, arc: Archive, files_di
         quotes(f"deal {key}", d.get("evidence"))
         ev = d.get("evidence") if isinstance(d.get("evidence"), list) else []
         if d.get("amount_minor") and ev:
-            ok = any(f in norm(e["quote"]) for e in ev for f in amount_forms(d["amount_minor"]))
+            ok = any(f in text_key(e["quote"]) for e in ev for f in amount_forms(d["amount_minor"]))
             F(f"deal {key}", "amount", f"{d['amount_minor'] / 100:,.2f} {d['currency']}", VERIFIED if ok else NOT_FOUND,
               "inside its quotes" if ok else "not inside any of its quotes")
     for r in plan.routing:
