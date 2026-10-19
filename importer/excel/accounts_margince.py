@@ -35,7 +35,7 @@ from zoneinfo import ZoneInfo
 from common.client import ApiError
 from common.fields import ensure_field
 from visits import when
-from excel.split import fold_key
+from excel.split import fold_key, phone_type
 
 from .accounts import Account, AccountsResult, Lead
 from .companies import norm
@@ -56,7 +56,6 @@ LEAD_FIELDS = [
     ("phone", "Phone", "text"), ("location", "Location", "text"), ("industry", "Industry", "text"),
     ("application", "Application", "text"), ("details", "Details", "text"),
 ]
-MOBILE_PREFIX = "+861"
 
 
 @dataclass
@@ -167,7 +166,7 @@ def contact_body(person) -> dict:
     phones = []
     for number in person.phones:
         if number not in (p["phone"] for p in phones):
-            phones.append({"phone": number, "phone_type": "mobile" if number.startswith(MOBILE_PREFIX) else "work",
+            phones.append({"phone": number, "phone_type": phone_type(number),
                            "is_primary": not phones, "position": len(phones)})
     body = {"full_name": person.name, "source": "import", "source_system": SOURCE_SYSTEM, "phones": phones}
     if person.emails:

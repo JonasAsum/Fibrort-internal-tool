@@ -513,10 +513,10 @@ def test_real_folder_against_the_real_company_master(real_files):
         pytest.skip("no company master on this machine")
     r = contacts.read_paths(real_files, real_master)
     s = contacts.summarize(r)
-    assert (s["contacts"], s["companies"], s["contacts_accepted"], s["companies_queued"]) == (27, 27, 23, 4)
-    assert s["queued_by_reason"] == {"company": 4}
+    assert (s["contacts"], s["companies"], s["contacts_accepted"], s["companies_queued"]) == (27, 27, 24, 3)
+    assert s["queued_by_reason"] == {"company": 3}  # SEW China, 苏州货赢通, 沈阳新松 (two master companies)
     assert sum(o.kind == "internal" for o in r.orgs.values()) == 1 and all(o.name.endswith(" (internal)") for o in r.orgs.values() if o.kind == "internal")
     crm = FakeCRM()
     first = commit(crm, r)
     second = commit(crm, r)
-    assert first["contacts_created"] == 23 and (second["contacts_created"], second["fields_set"], second["titles_set"]) == (0, 0, 0)
+    assert first["contacts_created"] == 24 and (second["contacts_created"], second["fields_set"], second["titles_set"]) == (0, 0, 0)

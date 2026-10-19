@@ -359,9 +359,10 @@ def test_crm_company_without_code_gets_no_code_from_its_id(tmp_path):
 
 
 def test_doubtful_name_is_queued_not_merged(tmp_path):
+    # same name, other province: doubtful. (The same province is accepted since the place check.)
     known = Master.from_records([{"source": "master", "code": "CR100001", "cn": "曼弗莱德智能制造（江苏）有限公司",
                                   "en": "", "short": ""}])
-    lst = master_book(tmp_path, [["New", "江苏曼弗莱德智能制造有限公司", None, None, None, None, None, "new", None]])
+    lst = master_book(tmp_path, [["New", "曼弗莱德智能制造（山东）有限公司", None, None, None, None, None, "new", None]])
     r = accounts.read_paths([lst], known)
     [a] = r.accounts
     assert a.queued and r.accepted_accounts() == []
@@ -628,7 +629,7 @@ def test_one_failing_account_does_not_stop_the_run(tmp_path, master):
 
 def test_queued_accounts_and_leads_are_not_written(tmp_path):
     known = Master.from_records([{"source": "master", "code": "CR100001", "cn": "曼弗莱德智能制造（江苏）有限公司", "en": "", "short": ""}])
-    lst = master_book(tmp_path, [["New", "江苏曼弗莱德智能制造有限公司", None, None, None, None, None, "new", None]])
+    lst = master_book(tmp_path, [["New", "曼弗莱德智能制造（山东）有限公司", None, None, None, None, None, "new", None]])
     r = accounts.read_paths([lst], known)
     crm = FakeCRM()
     report = am.commit(crm, r)

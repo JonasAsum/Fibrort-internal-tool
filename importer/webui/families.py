@@ -10,7 +10,7 @@ from collections import Counter
 from decimal import Decimal
 
 from excel import accounts, accounts_margince, contacts, contacts_margince, orders, orders_margince
-from excel import receivables, receivables_margince, todos, todos_margince
+from excel import quotes, quotes_margince, receivables, receivables_margince, todos, todos_margince
 from excel.companies import norm as company_norm
 
 # Plain words for the review reasons that are notes or skipped rows (company questions are asked, not listed).
@@ -455,4 +455,57 @@ class Receivables(Adapter):
         return report(written + d.get("created", 0), present, len(c["errors"]), lines=lines, errors=c["errors"])
 
 
-ADAPTERS = {a.key: a for a in (Accounts(), Contacts(), Todos(), Orders(), Receivables())}
+class Quotes(Adapter):
+    key = "quotes"
+    unit = "quotes"
+
+    def read(self, paths):
+        return quotes.read_paths(paths)
+
+    def writable(self, r):
+        return len(r.accepted())
+
+    def waiting(self, r):
+        return len(r.quotes) - len(r.accepted())
+
+    def counts(self, r):
+        s = quotes.summarize(r)
+        return rows(("Quotes (revisions)", s["quotes_accepted"]), ("Deals (enquiries)", s["deals"]),
+                    ("Won order, kept open", s["won"]), ("Open", s["open"]), ("Lost or cancelled", s["lost"]),
+                    ("Status not understood, kept open", s["unknown"]), ("Without a price", s["without_price"]),
+                    ("Waiting for a company answer", s["quotes_queued"]))
+
+    def notes(self, r):
+        return notes_from(r.review) + [
+            f"The log names no currency; offers and deals are written in {quotes_margince.DEFAULT_CURRENCY} "
+            "(one quote linked to an ERP order is exactly 1/8 of its CNY value). No rate is applied."]
+
+    def file_stats(self, r):
+        return {f["path"]: (f["rows"], "quotes") for f in r.files}
+
+    def dry_run(self, client, r):
+        p = quotes_margince.plan(client, r)
+        lines = [("Currency written", p["currency"]), ("New accounts", p["companies_new"]),
+                 ("Accounts already in the CRM", p["companies_present"]), ("New deals", p["deals_new"]),
+                 ("Deals already in the CRM", p["deals_present"]), ("New offers", p["offers_new"]),
+                 ("New follow-up notes", p["notes_new"]),
+                 ("Quotes waiting for a company answer", p["quotes_waiting_for_a_company_answer"])]
+        if p["fields_missing"]:
+            lines.append(("Deal custom fields that will be created", ", ".join(p["fields_missing"])))
+        return rows(*lines)
+
+    def commit(self, client, r, emit):
+        c = quotes_margince.commit(client, r, on_progress=emit)
+        d = c["companies"] or {}
+        written = d.get("created", 0) + c["deals_created"] + c["offers_created"] + c["notes_created"]
+        notes = [f"{c['offers_left_draft']} offers stay drafts: the CRM refused to send them (no exchange rate?)"] \
+            if c["offers_left_draft"] else []
+        return report(written, c["deals_present"], len(c["failed"]), lines=[
+            ("Deals created", c["deals_created"]), ("Deals already in the CRM", c["deals_present"]),
+            ("Deals closed as lost", c["deals_closed_lost"]), ("Offers created", c["offers_created"]),
+            ("Offers sent", c["offers_sent"]), ("Offers rejected", c["offers_rejected"]),
+            ("Follow-up notes created", c["notes_created"])], notes=notes,
+            errors=[f"{f['id']}: {f['error']}" for f in c["failed"]])
+
+
+ADAPTERS = {a.key: a for a in (Accounts(), Contacts(), Todos(), Orders(), Receivables(), Quotes())}

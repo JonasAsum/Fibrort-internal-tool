@@ -229,6 +229,12 @@ def phone_e164(raw) -> str:
     return text
 
 
+def phone_type(number: str) -> str:
+    """The CRM label of an E.164 number, decided by the number alone: "mobile" for a Chinese mobile (+86 1[3-9]...),
+    "work" for everything else (landlines such as Beijing +8610..., 400/800 lines, foreign numbers)."""
+    return "mobile" if re.fullmatch(r"\+86" + MOBILE_CN.pattern, number or "") else "work"
+
+
 def looks_like_phone(text) -> bool:
     """A cell that is a phone number (digits and separators, at most a short label), not an address or a name."""
     t = "" if text is None else str(text)

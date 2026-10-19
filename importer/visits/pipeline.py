@@ -38,7 +38,7 @@ from zoneinfo import ZoneInfo
 from . import when
 from common.client import ApiError, MargenceClient
 from common.fields import ensure_field
-from excel.split import fold_key, phone_e164
+from excel.split import fold_key, phone_e164, phone_type
 from .match import Company, Contact, MatchResult
 from .reader import Note, Parsed, Visit, Week
 
@@ -142,14 +142,14 @@ def _existing_id(exc: ApiError, code: str) -> str | None:
 
 def contact_phones(contact: Contact) -> list[dict]:
     phones = []
-    for raw, kind in [(p, "mobile") for p in contact.phones] + [(p, "work") for p in contact.office_phones]:
+    for raw in list(contact.phones) + list(contact.office_phones):
         number = normalize_phone(raw)
         # The CRM only takes numbers with a country prefix; one we cannot place (a
         # local number without area code, a WeChat ID) stays in the visit's text and raw row.
         if not number.startswith("+"):
             continue
         if number not in (p["phone"] for p in phones):
-            phones.append({"phone": number, "phone_type": kind, "is_primary": not phones, "position": len(phones)})
+            phones.append({"phone": number, "phone_type": phone_type(number), "is_primary": not phones, "position": len(phones)})
     return phones
 
 
@@ -263,7 +263,8 @@ def visit_subject(visit: Visit, company: Company | None) -> str:
     if visit.kind == "exhibition":
         return _one_line(f"Exhibition — {visit.customer_raw}{where}")
     if visit.kind == "internal":
-        return _one_line(f"Internal — {visit.purpose or visit.city}")
+        said = next((t for t in (visit.purpose, visit.customer_raw, visit.city) if re.search(r"\w", t or "")), "(no description)")
+        return _one_line(f"Internal — {said}")
     prefix = "Cancelled visit" if visit.status == "cancelled" else "Visit"
     return _one_line(f"{prefix} — {name}{where}")
 
@@ -463,6 +464,7 @@ class _Run:
     def import_contacts(self) -> None:
         self.emit("contacts_start", total=len(self.result.contacts))
         by_company: dict[str, dict[str, str]] = {}
+        mobiles: dict[str, dict[str, str]] = {}
         for i, (key, contact) in enumerate(self.result.contacts.items()):
             company_id = self.company_ids.get(contact.company_key)
             if not company_id:
@@ -471,15 +473,36 @@ class _Run:
                 by_company[company_id] = {fold_key(c["full_name"]): c["contact_id"]
                                           for c in self.client.contacts_for_company(company_id)}
             existing_id = by_company[company_id].get(fold_key(contact.full_name))
+            if not existing_id:
+                existing_id = self.contact_with_mobile(company_id, contact, mobiles)
             if existing_id:
                 self.contact_ids[key] = existing_id
                 self.report.contacts_updated += self.add_reachability(existing_id, contact)
             else:
                 self.contact_ids[key], created = self.create_contact(contact, company_id)
                 by_company[company_id][fold_key(contact.full_name)] = self.contact_ids[key]
+                for p in contact_phones(contact):
+                    if p["phone_type"] == "mobile" and company_id in mobiles:
+                        mobiles[company_id].setdefault(p["phone"], self.contact_ids[key])
                 self.report.contacts_created += created
                 self.report.contacts_updated += not created  # an existing person, found by email
             self.emit("contacts_progress", done=i + 1, total=len(self.result.contacts))
+
+    def contact_with_mobile(self, company_id: str, contact: Contact, cache: dict) -> str | None:
+        """The contact this company already holds with one of this person's mobile numbers: a mobile belongs to one
+        person, so the same number at the same company is the same person written another way (pinyin and Chinese
+        spelling). Landlines and 400/800 lines are switchboards and never match."""
+        wanted = {p["phone"] for p in contact_phones(contact) if p["phone_type"] == "mobile"}
+        if not wanted:
+            return None
+        if company_id not in cache:
+            held = {}
+            for c in self.client.contacts_for_company(company_id):
+                for ph in self.client.get_contact(c["contact_id"]).get("phones") or []:
+                    if phone_type(ph["phone"]) == "mobile":
+                        held.setdefault(ph["phone"], c["contact_id"])
+            cache[company_id] = held
+        return next((cache[company_id][n] for n in wanted if n in cache[company_id]), None)
 
     def create_contact(self, contact: Contact, company_id: str) -> tuple[str, bool]:
         """(contact id, whether a new record was made)."""

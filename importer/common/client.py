@@ -170,3 +170,29 @@ class MargenceClient:
         200 the API answers when (source_system, source_id) already exists."""
         status, activity = self.post_status("/v1/activities", json=body)
         return status == 201, activity
+
+    # ---- deals and offers ----
+
+    def default_stage(self) -> tuple[str, str]:
+        """(pipeline_id, stage_id): the default pipeline's first open stage."""
+        pipelines = list(self.paginate("/v1/pipelines", {"limit": 200}))
+        pipeline = next((p for p in pipelines if p.get("is_default")), pipelines[0])
+        stages = sorted((s for s in pipeline.get("stages") or [] if s.get("semantic", "open") == "open"),
+                        key=lambda s: s["position"])
+        return pipeline["id"], stages[0]["id"]
+
+    def list_deals(self, params: dict | None = None) -> list[dict]:
+        return list(self.paginate("/v1/deals", {"limit": 200, **(params or {})}))
+
+    def create_deal(self, body: dict) -> dict:
+        return self.post("/v1/deals", json=body)
+
+    def deal_offers(self, deal_id: str) -> list[dict]:
+        return list(self.paginate(f"/v1/deals/{deal_id}/offers", {"limit": 200}))
+
+    def create_offer(self, deal_id: str, body: dict) -> dict:
+        return self.post(f"/v1/deals/{deal_id}/offers", json=body)
+
+    def offer_action(self, offer_id: str, action: str, body: dict | None = None) -> dict:
+        """action: send | reject"""
+        return self.post(f"/v1/offers/{offer_id}/{action}", json=body)

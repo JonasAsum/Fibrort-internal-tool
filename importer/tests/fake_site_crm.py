@@ -19,6 +19,8 @@ class SiteCRM:
         self.seats = dict(seats or {"Richard Yu": "seat-richard", "Ethan Lv": "seat-ethan"})
         self.email_owner = {}  # email (lower) -> contact id that holds it, like the CRM's duplicate_email 409
         self.deals = []
+        self.offers = {}  # deal id -> [offer]
+        self.refuse_send = False  # like a CRM with no FX rate: send answers 422
 
     def _id(self, prefix):
         return f"{prefix}{next(self.ids)}"
@@ -61,11 +63,11 @@ class SiteCRM:
 
     # ---- vocabulary ----
     def custom_fields(self, object_):
-        return list(self.fields[object_])
+        return list(self.fields.setdefault(object_, []))
 
     def create_custom_field(self, body):
         f = {**body, "column_name": "cf_" + body["label"].lower().replace(" ", "_")}
-        self.fields[body["object"]].append(f)
+        self.fields.setdefault(body["object"], []).append(f)
         self._write("field", body)
         return dict(f)
 
@@ -103,6 +105,11 @@ class SiteCRM:
 
     def patch(self, path, body, **kw):
         kind, ident = path.strip("/").split("/")[1:3]
+        if kind == "deals":
+            deal = next(d for d in self.deals if d["id"] == ident)
+            deal.update(body)
+            self._write("deal-patch", body)
+            return dict(deal)
         store = {"companies": self.companies, "contacts": self.contacts, "leads": self.leads,
                  "activities": self.activities}[kind]
         if kind == "contacts":
@@ -125,6 +132,38 @@ class SiteCRM:
         self.leads[lid] = {**json, "id": lid}
         self._write("lead", json)
         return 201, dict(self.leads[lid])
+
+    # ---- deals and offers ----
+    def default_stage(self):
+        return "pipe1", "stage1"
+
+    def list_deals(self, params=None):
+        return [copy.deepcopy(d) for d in self.deals]
+
+    def create_deal(self, body):
+        deal = {**body, "id": self._id("dl"), "status": "open"}
+        self.deals.append(deal)
+        self.offers[deal["id"]] = []
+        self._write("deal", body)
+        return dict(deal)
+
+    def deal_offers(self, deal_id):
+        return [dict(o) for o in self.offers[deal_id]]
+
+    def create_offer(self, deal_id, body):
+        offer = {**body, "id": self._id("of"), "deal_id": deal_id, "status": "draft",
+                 "revision": len(self.offers[deal_id]) + 1}
+        self.offers[deal_id].append(offer)
+        self._write("offer", body)
+        return dict(offer)
+
+    def offer_action(self, offer_id, action, body=None):
+        offer = next(o for offers in self.offers.values() for o in offers if o["id"] == offer_id)
+        if self.refuse_send:
+            raise _Conflict(offer_id)
+        offer["status"] = {"send": "sent", "reject": "rejected"}[action]
+        self._write("offer-" + action, body or {})
+        return dict(offer)
 
     # ---- contacts ----
     def create_contact(self, body):

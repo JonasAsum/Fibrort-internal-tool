@@ -54,16 +54,15 @@ def test_word_order_irrelevant():
 
 def test_empty_and_none_contact_has_no_contact():
     res, keys = _run("", None, "   ")
-    assert keys[0] is None and keys[1] is None
-    assert keys[2] is not None  # whitespace is a (junk) cell, not a crash
-    assert all(c.full_name.strip() == "" for c in res.contacts.values())
+    assert keys == [None, None, None]  # empty, missing and whitespace-only cells are no contact (and no crash)
+    assert not res.contacts
 
 
 def test_salutation_only_is_its_own_contact():
     res, keys = _run("Mr.", "Ms.", "Mr", "Dr. Wei.Li")
-    assert keys[0] == keys[2] and keys[0] != keys[1]
-    assert keys[3] not in keys[:3]
-    assert len(res.contacts) == 3
+    assert keys[:3] == [None, None, None]  # a bare "Mr."/"Ms." is no person (looks_like_person_name): correct over complete
+    assert keys[3] is not None
+    assert len(res.contacts) == 1
 
 
 def test_unicode_width_variants_merge():

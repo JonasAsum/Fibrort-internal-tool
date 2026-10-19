@@ -163,3 +163,38 @@ def test_subjects_are_one_line_whatever_the_cell_holds():
     exhibition = NS(kind="exhibition", purpose="", city="Dalian", customer_raw="Welding\nExhibition", status="done")
     assert visit_subject(exhibition, None) == "Exhibition — Welding Exhibition (Dalian)"
     assert _task_subject(NS(highlight="yellow", text="Call back\nnext week")) == "Waiting — Call back next week"
+
+
+# ---- one mobile number at one company is one person, whatever the name is written as ----
+
+class SameMobileSameCompany(TmpCase):
+    NAME = "Template for Weekly Sales Reporting 2026_CW21_Rep.xlsx"
+
+    def load_two(self, first, second, name2="Template for Weekly Sales Reporting 2026_CW22_Rep.xlsx"):
+        crm = FakeCRM()
+        load(crm, contact_file(self.path(self.NAME), [first]))
+        report, _ = load(crm, contact_file(self.path(name2), [second]))
+        return crm, report
+
+    def test_same_company_same_mobile_other_spelling_is_reused(self):
+        crm, report = self.load_two(("Acme Test Co.", "郭爱", "13701217825", ""), ("Acme Test Co.", "Ms.Guo", "13701217825", ""))
+        self.assertEqual([c["full_name"] for c in crm.contacts.values()], ["郭爱"])
+        self.assertEqual(report.contacts_created, 0)
+
+    def test_same_mobile_at_another_company_stays_a_second_record(self):
+        crm, _ = self.load_two(("Acme Test Co.", "郭爱", "13701217825", ""), ("Beta Test GmbH", "Ms.Guo", "13701217825", ""))
+        self.assertEqual(len(crm.contacts), 2)
+
+    def test_a_shared_landline_is_not_a_person(self):
+        crm, _ = self.load_two(("Acme Test Co.", "Wang Test", "010-52649208", ""), ("Acme Test Co.", "Li Other", "010-52649208", ""))
+        self.assertEqual(len(crm.contacts), 2)
+
+
+def test_an_internal_visit_without_a_description_never_has_an_empty_subject():
+    from types import SimpleNamespace as NS
+    from visits.pipeline import visit_subject
+    base = dict(kind="internal", city="", status="", customer_raw="./", purpose="")
+    assert visit_subject(NS(**base), None) == "Internal — (no description)"
+    assert visit_subject(NS(**{**base, "purpose": " ./ "}), None) == "Internal — (no description)"
+    assert visit_subject(NS(**{**base, "purpose": "", "customer_raw": "Team meeting"}), None) == "Internal — Team meeting"
+    assert visit_subject(NS(**{**base, "purpose": "Training day", "city": "Shenyang"}), None) == "Internal — Training day"

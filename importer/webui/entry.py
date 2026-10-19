@@ -3,7 +3,7 @@ sheets), never only by its name. Reads the file, writes nothing.
 
 A file is one of:
   import      a list this importer can read: family "visits" | "accounts" | "contacts" | "todos" |
-              "orders" | "receivables" (folders 01-03, 04-05, 06, 07, 08, 09 of the CRM folder review)
+              "orders" | "receivables" | "quotes" (folders 01-03, 04-05, 06, 07, 08, 09, 10 of the CRM folder review)
   kept_out    recognised, and the folder review says it does not belong in the CRM (invoice and
               packing lists, the formula workbook, bank cash flows, AP, fixed costs, Laepple 2023 ...)
   unknown     no list this importer knows; `reason` says what was looked for
@@ -13,7 +13,7 @@ import os
 import re
 from collections import Counter, defaultdict
 
-from excel import accounts, contacts, layouts, orders, receivables, todos
+from excel import accounts, contacts, layouts, orders, quotes, receivables, todos
 from excel.files import file_display_name
 from excel.sheet import load
 
@@ -27,6 +27,7 @@ FAMILIES = {
     "todos": ("To-dos and sales topics (07)", "Tasks (owner, due date, status)", 4),
     "orders": ("Sales orders (08)", "Read-only order history on each account", 5),
     "receivables": ("Receivables (09)", "Open and overdue receivables as a number on the account", 6),
+    "quotes": ("Quote log (10)", "Deals with one offer per quote revision, on the account", 7),
 }
 COMMIT_ORDER = sorted(FAMILIES, key=lambda k: FAMILIES[k][2])
 
@@ -37,8 +38,10 @@ ACCOUNT_LAYOUTS = {"erp": ("04", "ERP customer list"), "master": ("05", "Custome
                    "effective": ("05", "Effective-customer analysis")}
 CONTACT_LAYOUTS = {"list": ("06", "Contact list (finance, receivable and payable)"),
                    "sections": ("06", "Contact list (handover)")}
+QUOTE_LAYOUTS = {"quotes": ("10", "Quote log")}
 TODO_LAYOUTS = {"todo": ("07", "To-do list"), "topics": ("07", "Sales topics list")}
-LAYOUT_TABLES = {"accounts": ACCOUNT_LAYOUTS, "contacts": CONTACT_LAYOUTS, "todos": TODO_LAYOUTS, "visits": VISIT_LAYOUTS}
+LAYOUT_TABLES = {"accounts": ACCOUNT_LAYOUTS, "contacts": CONTACT_LAYOUTS, "todos": TODO_LAYOUTS, "visits": VISIT_LAYOUTS,
+                 "quotes": QUOTE_LAYOUTS}
 
 # What the folder review says about the files that stay out. Keys are matched on the importers' own reason text.
 KEPT_OUT = {
@@ -59,7 +62,7 @@ RECEIVABLES_REASONS = (("aging", "aging"), ("bank cash flows", "bank"), ("accoun
                        ("fixed costs", "fixed"), ("finance summary", "summary"), ("down payments", "down_payment"))
 
 # A sheet counts once, for the first family that claims it (a regional customer list also looks like a contact list).
-SHEET_PRIORITY = ("accounts", "contacts", "todos", "visits")
+SHEET_PRIORITY = ("quotes", "accounts", "contacts", "todos", "visits")
 
 
 def folder_hint(relative_name: str) -> str:
@@ -74,7 +77,8 @@ def folder_hint(relative_name: str) -> str:
 def _sheet_family(sheet, path) -> dict:
     """{family: layout} for the families whose header this sheet has."""
     found = {}
-    for key, fn in (("orders", lambda: orders.looks_like_orders(sheet) and "orders"),
+    for key, fn in (("quotes", lambda: quotes.looks_like_quotes(sheet) and "quotes"),
+                    ("orders", lambda: orders.looks_like_orders(sheet) and "orders"),
                     ("receivables", lambda: receivables.looks_like_receivables(sheet) and "receivables"),
                     ("accounts", lambda: accounts.detect(sheet)),
                     ("contacts", lambda: contacts.detect(sheet)),
